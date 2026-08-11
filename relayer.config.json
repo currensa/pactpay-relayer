@@ -1,0 +1,52 @@
+{
+  "publicConfigPath": "./config.json",
+  "host": "0.0.0.0",
+  "port": 9000,
+  "databasePath": "./data/relayer.db",
+  "quoteTtlSeconds": 120,
+  "pricingMaxAgeSeconds": 3600,
+  "priceCacheSeconds": 30,
+  "priceRequestTimeoutMs": 5000,
+  "priceSafetyMarginBps": 10500,
+  "serviceFeeBps": 10,
+  "maxTotalFeeBps": 5000,
+  "maxRequestBytes": 65536,
+  "maxQueuedPerChain": 100,
+  "globalRateLimitPerMinute": 1000,
+  "trustProxy": false,
+  "corsOrigins": [],
+  "chains": [
+    {
+      "chainId": 11155111,
+      "privateKeyEnv": "RELAYER_PRIVATE_KEY_EVM",
+      "confirmations": 1,
+      "gasByTier": { "8": 400000, "16": 450000, "32": 500000, "64": 600000, "128": 750000 },
+      "maxGas": 3000000,
+      "gasLimitMultiplierBps": 12000,
+      "nativePriceAssetId": "ethereum",
+      "tokenPricing": [
+        {
+          "address": "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238",
+          "decimals": 6,
+          "priceAssetId": "usd-coin"
+        }
+      ]
+    },
+    {
+      "chainId": 11142220,
+      "privateKeyEnv": "RELAYER_PRIVATE_KEY_EVM",
+      "confirmations": 1,
+      "gasByTier": { "8": 400000, "16": 450000, "32": 500000, "64": 600000, "128": 750000 },
+      "maxGas": 3000000,
+      "gasLimitMultiplierBps": 12000,
+      "nativePriceAssetId": "celo",
+      "tokenPricing": [
+        {
+          "address": "0x01C5C0122039549AD1493B8220cABEdD739BC44E",
+          "decimals": 6,
+          "priceAssetId": "usd-coin"
+        }
+      ]
+    }
+  ]
+}

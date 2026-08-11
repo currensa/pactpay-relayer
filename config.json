@@ -1,0 +1,124 @@
+{
+  "11155111": {
+    "family": "evm",
+    "rpcUrl": "wss://ethereum-sepolia-rpc.publicnode.com",
+    "StartBlock": 11214643,
+    "DepositVerifier_128": "0x37Cf8C6820690DA3c1EC5BbaC3878599248341B9",
+    "DepositVerifier_16": "0xF39ccd6F64D8581D8800F9dCca5CD479BBeDf4C9",
+    "DepositVerifier_32": "0x4244e2E1FBcfefE04223Ad26F38257e87361f0D7",
+    "DepositVerifier_64": "0xcFdaA6153bd053466A08c7AE75C534023D5D10cc",
+    "DepositVerifier_8": "0xc6C36D21DBA5298C388083EC6e9d149bfACbB73b",
+    "WithdrawVerifier_128": "0xBe2E7EacD8a8294f2d94c6fce44bDAC6d950cF12",
+    "WithdrawVerifier_16": "0x83C795Ac7e7cd68A1F651291eE97bAc81B12fdF6",
+    "WithdrawVerifier_32": "0xF366c5c1c7A806AbcdAEd8241f7cA04E828D3467",
+    "WithdrawVerifier_64": "0xD4d6E34e5a233Fa808533fa08D36BA5C5d4166e7",
+    "WithdrawVerifier_8": "0x8618C38C479c80a6Cc975Fe034Ea041e7467C8Ce",
+    "chainName": "Ethereum Sepolia",
+    "wallet": {
+      "nativeCurrency": {
+        "name": "Sepolia Ether",
+        "symbol": "ETH",
+        "decimals": 18
+      },
+      "rpcUrls": [
+        "https://ethereum-sepolia-rpc.publicnode.com"
+      ],
+      "blockExplorerUrls": [
+        "https://sepolia.etherscan.io"
+      ]
+    },
+    "GravArc": "0xB18672C43f214576429622FA8aE54404C313BDA4",
+    "erc20Tokens": [
+      {
+        "symbol": "MCK",
+        "name": "MockERC20",
+        "address": "0x46fad580f332729c92fa830cda55c0f6c08cdc16"
+      },
+      {
+        "symbol": "USDC",
+        "name": "USDC",
+        "address": "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238"
+      },
+      {
+        "symbol": "MCK-2",
+        "name": "Mock-2",
+        "address": "0xCb264aA91Aa82E1C6E70F716dFB1306D78a4Aa90"
+      }
+    ],
+    "PureRouter": "0xD1A67016b5D50925FAE6b0BA547E5c651Ee54E8d",
+    "PactPrivacyDefiRouter": "0x36f341F8939dFf8760Cc29F41c34C09df424833D",
+    "defiProtocols": [
+      {
+        "name": "MockSwap",
+        "address": "0x43d37f188F51f2A942eE49BBb638c46F33567fEe"
+      }
+    ],
+    "MockSwap": "0x43d37f188F51f2A942eE49BBb638c46F33567fEe",
+    "RefundVerifier_8": "0x7F766A9B84551502b1471254704d19349749760a",
+    "RefundVerifier_16": "0x4143142154Cf802E7e3bfA512FBF36d63ED9E3C1",
+    "RefundVerifier_32": "0x1D5D1Be89610295E8bFC196d5DE0EC8ebCDc3DbB",
+    "RefundVerifier_64": "0x1Da2C541Fb8eF7B9fBc42A1E1E2Cf993Bc62Af52",
+    "RefundVerifier_128": "0xdC271abc2e211bE99460d690401B530303175608"
+  },
+  "11142220": {
+    "chainName": "Celo Sepolia",
+    "family": "evm",
+    "DepositVerifier_8": "0x2C9F6Da146eEd8Ba96Fd3Db28157bcE84F870b0f",
+    "DepositVerifier_16": "0x43d37f188F51f2A942eE49BBb638c46F33567fEe",
+    "DepositVerifier_32": "0xF95443c9CeC0D3Eb9E66D84CAFfA475e617d675C",
+    "DepositVerifier_64": "0x517BdDA879C941403F3fC88505d11e42e88Ec70F",
+    "DepositVerifier_128": "0xc6C36D21DBA5298C388083EC6e9d149bfACbB73b",
+    "WithdrawVerifier_8": "0xF39ccd6F64D8581D8800F9dCca5CD479BBeDf4C9",
+    "WithdrawVerifier_16": "0x4244e2E1FBcfefE04223Ad26F38257e87361f0D7",
+    "WithdrawVerifier_32": "0xcFdaA6153bd053466A08c7AE75C534023D5D10cc",
+    "WithdrawVerifier_64": "0x37Cf8C6820690DA3c1EC5BbaC3878599248341B9",
+    "WithdrawVerifier_128": "0x8618C38C479c80a6Cc975Fe034Ea041e7467C8Ce",
+    "GravArc": "0x4143142154Cf802E7e3bfA512FBF36d63ED9E3C1",
+    "rpcUrl": "https://forno.celo-sepolia.celo-testnet.org",
+    "wallet": {
+      "nativeCurrency": {
+        "name": "CELO",
+        "symbol": "S-CELO",
+        "decimals": 18
+      },
+      "rpcUrls": [
+        "https://forno.celo-sepolia.celo-testnet.org"
+      ],
+      "blockExplorerUrls": [
+        "https://celo-sepolia.blockscout.com"
+      ]
+    },
+    "StartBlock": 30047466,
+    "erc20Tokens": [
+      {
+        "symbol": "MCK",
+        "name": "MockERC20",
+        "address": "0xF4a61fbED4f650B326f27EA407250963A7963ddf"
+      },
+      {
+        "symbol": "USDC",
+        "name": "USDC",
+        "address": "0x01C5C0122039549AD1493B8220cABEdD739BC44E"
+      },
+      {
+        "symbol": "MCK-2",
+        "name": "Mock-2",
+        "address": "0xBe815BEFDdE4857541EFcD76FbF8368841f737D1"
+      }
+    ],
+    "PureRouter": "0x1D5D1Be89610295E8bFC196d5DE0EC8ebCDc3DbB",
+    "PactPrivacyDefiRouter": "0x1Da2C541Fb8eF7B9fBc42A1E1E2Cf993Bc62Af52",
+    "defiProtocols": [
+      {
+        "name": "MockSwap",
+        "address": "0x0F67F3109D9bdcB2340Ffa300557f0d076433f10"
+      }
+    ],
+    "MockSwap": "0x0F67F3109D9bdcB2340Ffa300557f0d076433f10",
+    "RefundVerifier_8": "0x83C795Ac7e7cd68A1F651291eE97bAc81B12fdF6",
+    "RefundVerifier_16": "0xF366c5c1c7A806AbcdAEd8241f7cA04E828D3467",
+    "RefundVerifier_32": "0xD4d6E34e5a233Fa808533fa08D36BA5C5d4166e7",
+    "RefundVerifier_64": "0xBe2E7EacD8a8294f2d94c6fce44bDAC6d950cF12",
+    "RefundVerifier_128": "0x7F766A9B84551502b1471254704d19349749760a"
+  }
+}
