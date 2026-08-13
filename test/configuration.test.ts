@@ -42,6 +42,8 @@ test("merges public chain information with relayer policy", () => {
   assert.equal(chain.gravArc, "0x4444444444444444444444444444444444444444");
   assert.equal(chain.confirmations, 2);
   assert.equal(chain.nativePriceAssetId, "test-native");
+  if (chain.family !== "evm") throw new Error("Expected EVM configuration");
+  assert.equal(chain.refundGasByTier["8"], 200);
   assert.deepEqual(chain.tokens.map((entry) => [entry.symbol, entry.priceAssetId]), [["TEST", undefined], ["USDC", "usd-coin"]]);
 });
 

@@ -1,4 +1,4 @@
-import type { ChainConfig, CircuitTier } from "../config/types";
+import type { ChainConfig, CircuitTier, RelayedOperation } from "../config/types";
 
 export type SimulationResult = {
   executionUnits: bigint;
@@ -22,8 +22,8 @@ export interface ChainAdapter {
   readonly relayerCanonical: string;
   readonly relayerDisplay: string;
   checkConnection(): Promise<void>;
-  estimateNativeNetworkCosts(tiers: CircuitTier[]): Promise<Map<CircuitTier, bigint>>;
-  simulate(calldata: string): Promise<SimulationResult>;
+  estimateNativeNetworkCosts(operation: RelayedOperation, tiers: CircuitTier[]): Promise<Map<CircuitTier, bigint>>;
+  simulate(calldata: string, operation: RelayedOperation): Promise<SimulationResult>;
   simulatedNativeCost(simulation: SimulationResult): Promise<bigint>;
   sign(calldata: string, simulation: SimulationResult): Promise<SignedTransaction>;
   broadcast(transaction: SignedTransaction): Promise<void>;

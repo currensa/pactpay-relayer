@@ -4,24 +4,28 @@ import { solidityPackedKeccak256 } from "ethers";
 import { RelayerError } from "../common/errors";
 import { DatabaseService } from "../database/database.service";
 import type { OperationRecord } from "../database/types";
+import type { RelayedOperation } from "../config/types";
 
-export type NewWithdrawalOperation = {
+export type NewRelayedOperation = {
+  operation: RelayedOperation;
   quoteId: string;
   chainId: number;
   gravArc: string;
   calldata: string;
   nullifierHash: string;
   nonce: bigint;
+  reservationKey: string;
 };
 
 @Injectable()
 export class OperationService {
   constructor(private readonly database: DatabaseService) {}
 
-  create(input: NewWithdrawalOperation): { operation: OperationRecord; created: boolean } {
+  create(input: NewRelayedOperation): { operation: OperationRecord; created: boolean } {
     const requestHash = solidityPackedKeccak256(["uint256", "address", "bytes"], [input.chainId, input.gravArc, input.calldata]);
     return this.database.createOperationFromQuote({
       id: randomUUID(), quoteId: input.quoteId, chainId: input.chainId, requestHash,
+      operation: input.operation, reservationKey: input.reservationKey,
       nullifierHash: input.nullifierHash, withdrawNonce: input.nonce.toString(), calldata: input.calldata,
     });
   }
@@ -35,6 +39,7 @@ export class OperationService {
   public(operation: OperationRecord) {
     return {
       id: operation.id,
+      operation: operation.operation,
       chainId: operation.chainId,
       state: operation.state,
       transactionHash: operation.txHash,

@@ -11,6 +11,7 @@ import { PricingModule } from "./pricing/pricing.module";
 import { QuoteModule } from "./quotes/quote.module";
 import { StatusModule } from "./status/status.module";
 import { WithdrawModule } from "./withdraw/withdraw.module";
+import { RefundModule } from "./refund/refund.module";
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { WithdrawModule } from "./withdraw/withdraw.module";
     QuoteModule,
     OperationModule,
     WithdrawModule,
+    RefundModule,
     StatusModule,
   ],
   providers: [

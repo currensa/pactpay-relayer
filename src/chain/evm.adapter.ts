@@ -1,6 +1,6 @@
 import { JsonRpcProvider, Transaction, Wallet, getAddress } from "ethers";
 import { SimulationRejectedError } from "../common/errors";
-import type { CircuitTier, EvmChainConfig } from "../config/types";
+import type { CircuitTier, EvmChainConfig, RelayedOperation } from "../config/types";
 import { canonicalAddress } from "./address";
 import type { ChainAdapter, SignedTransaction, SimulationResult, TransactionStatus } from "./types";
 
@@ -36,16 +36,17 @@ export class EvmChainAdapter implements ChainAdapter {
     await this.provider.getBlockNumber();
   }
 
-  async estimateNativeNetworkCosts(tiers: CircuitTier[]): Promise<Map<CircuitTier, bigint>> {
+  async estimateNativeNetworkCosts(operation: RelayedOperation, tiers: CircuitTier[]): Promise<Map<CircuitTier, bigint>> {
     const fees = await this.provider.getFeeData();
     const gasPrice = fees.maxFeePerGas ?? fees.gasPrice;
     if (gasPrice === null) throw new Error(`Chain ${this.config.chainId} did not return a gas price`);
+    const estimates = operation === "refund" ? this.config.refundGasByTier : this.config.gasByTier;
     return new Map(tiers.map((tier) => [tier,
-      (BigInt(this.config.gasByTier[String(tier)]!) * BigInt(this.config.gasLimitMultiplierBps) + 9_999n) / 10_000n * gasPrice,
+      (BigInt(estimates[String(tier)]!) * BigInt(this.config.gasLimitMultiplierBps) + 9_999n) / 10_000n * gasPrice,
     ]));
   }
 
-  async simulate(calldata: string): Promise<SimulationResult> {
+  async simulate(calldata: string, _operation: RelayedOperation): Promise<SimulationResult> {
     const request = { from: this.relayerDisplay, to: getAddress(this.config.gravArc), data: calldata, value: 0n };
     try {
       await this.provider.send("eth_call", [{

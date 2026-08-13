@@ -1,5 +1,6 @@
 export type ChainFamily = "evm" | "tron";
 export type CircuitTier = 8 | 16 | 32 | 64 | 128;
+export type RelayedOperation = "withdraw" | "refund";
 
 export type TokenConfig = {
   symbol: string;
@@ -26,6 +27,7 @@ export type BaseChainConfig = {
 export type EvmChainConfig = BaseChainConfig & {
   family: "evm";
   gasByTier: Record<string, number>;
+  refundGasByTier: Record<string, number>;
   maxGas: number;
   gasLimitMultiplierBps: number;
 };
@@ -34,6 +36,8 @@ export type TronChainConfig = BaseChainConfig & {
   family: "tron";
   energyByTier: Record<string, number>;
   bandwidthByTier: Record<string, number>;
+  refundEnergyByTier: Record<string, number>;
+  refundBandwidthByTier: Record<string, number>;
   maxEnergy: number;
   maxFeeSun: number;
   feeLimitMultiplierBps: number;

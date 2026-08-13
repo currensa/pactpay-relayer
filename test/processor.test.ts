@@ -34,12 +34,12 @@ test("persists a signed payload before broadcast and confirms through polling", 
   const chains = { get: () => adapter } as unknown as ChainService;
   const now = Date.now();
   database.insertQuote({
-    id: "quote-3", chainId: chain.chainId, gravArc: chain.gravArc,
+    id: "quote-3", operation: "withdraw", chainId: chain.chainId, gravArc: chain.gravArc,
     relayer: adapter.relayerCanonical, token: zero, amount: "1000000", tier: 8,
     networkFee: "100", serviceFee: "1000", fee: "1100", createdAt: now, expiresAt: now + 60_000,
   });
   database.createOperationFromQuote({
-    id: "operation-3", quoteId: "quote-3", chainId: chain.chainId, requestHash: `0x${"66".repeat(32)}`,
+    id: "operation-3", operation: "withdraw", reservationKey: `0x${"77".repeat(32)}:0`, quoteId: "quote-3", chainId: chain.chainId, requestHash: `0x${"66".repeat(32)}`,
     nullifierHash: `0x${"77".repeat(32)}`, withdrawNonce: "0", calldata: "0x1234",
   });
   const processor = new OperationProcessor(config, database, chains, new PricingService(config));
@@ -73,12 +73,12 @@ test("never signs or broadcasts a simulation-rejected proof", async () => {
   const chains = { get: () => adapter } as unknown as ChainService;
   const now = Date.now();
   database.insertQuote({
-    id: "quote-4", chainId: chain.chainId, gravArc: chain.gravArc,
+    id: "quote-4", operation: "withdraw", chainId: chain.chainId, gravArc: chain.gravArc,
     relayer: adapter.relayerCanonical, token: zero, amount: "1000000", tier: 8,
     networkFee: "100", serviceFee: "1000", fee: "1100", createdAt: now, expiresAt: now + 60_000,
   });
   database.createOperationFromQuote({
-    id: "operation-4", quoteId: "quote-4", chainId: chain.chainId, requestHash: `0x${"88".repeat(32)}`,
+    id: "operation-4", operation: "withdraw", reservationKey: `0x${"99".repeat(32)}:0`, quoteId: "quote-4", chainId: chain.chainId, requestHash: `0x${"88".repeat(32)}`,
     nullifierHash: `0x${"99".repeat(32)}`, withdrawNonce: "0", calldata: "0x1234",
   });
   await new OperationProcessor(config, database, chains, new PricingService(config)).tick();

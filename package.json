@@ -2,7 +2,7 @@
   "name": "pactpay-relayer",
   "version": "0.1.0",
   "private": true,
-  "description": "Pact Privacy withdrawal relayer",
+  "description": "Pact Privacy transaction relayer",
   "license": "UNLICENSED",
   "scripts": {
     "build": "nest build",

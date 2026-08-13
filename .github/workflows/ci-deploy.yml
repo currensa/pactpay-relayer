@@ -1,0 +1,89 @@
+# Required GitHub environment secrets:
+#   PACT_SSH_HOST           — server IP or hostname
+#   PACT_SSH_USER           — SSH login user
+#   PACT_SSH_KEY            — SSH private key (Ed25519 or RSA)
+#   DEPLOY_PATH             — absolute server path, e.g. /home/ubuntu/pactpay-relayer
+#   RELAYER_PRIVATE_KEY_EVM — key named by privateKeyEnv in relayer.config.json
+#
+# Optional secrets (required when the corresponding integration is enabled):
+#   RELAYER_PRIVATE_KEY_TRON — TRON key named by privateKeyEnv
+#   TRON_PRO_API_KEY         — TronGrid API key
+#
+# If another privateKeyEnv is added to relayer.config.json, also expose the
+# matching GitHub secret through the deploy step's env and envs lists.
+
+name: Relayer CI and Deploy
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pactpay-relayer-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Use Node.js 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Test
+        run: npm test
+
+  deploy:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: verify
+    runs-on: ubuntu-latest
+    environment: staging
+
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1
+        env:
+          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
+          RELAYER_PRIVATE_KEY_EVM: ${{ secrets.RELAYER_PRIVATE_KEY_EVM }}
+          RELAYER_PRIVATE_KEY_TRON: ${{ secrets.RELAYER_PRIVATE_KEY_TRON }}
+          TRON_PRO_API_KEY: ${{ secrets.TRON_PRO_API_KEY }}
+        with:
+          host: ${{ secrets.PACT_SSH_HOST }}
+          username: ${{ secrets.PACT_SSH_USER }}
+          key: ${{ secrets.PACT_SSH_KEY }}
+          envs: DEPLOY_PATH,RELAYER_PRIVATE_KEY_EVM,RELAYER_PRIVATE_KEY_TRON,TRON_PRO_API_KEY
+          script: |
+            set -e
+
+            export NVM_DIR="$HOME/.nvm"
+            [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+            nvm use 24
+
+            cd "$DEPLOY_PATH"
+            git pull --ff-only origin main
+
+            npm ci
+            npm run build
+
+            # PM2 inherits signing keys from this SSH session. No private key
+            # is written to disk; config.json and relayer.config.json remain
+            # the committed public configuration.
+            pm2 reload pactpay-relayer --update-env 2>/dev/null \
+              || pm2 start npm --name pactpay-relayer -- run start:prod
+
+            pm2 save

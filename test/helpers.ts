@@ -9,6 +9,7 @@ export function evmChain(): ChainConfig {
     gravArc: "0x4444444444444444444444444444444444444444", privateKeyEnv: "TEST_KEY",
     confirmations: 1, nativeSymbol: "TEST", nativeDecimals: 6,
     gasByTier: { "8": 100, "16": 100, "32": 100, "64": 100, "128": 100 },
+    refundGasByTier: { "8": 200, "16": 200, "32": 200, "64": 200, "128": 200 },
     maxGas: 1000, gasLimitMultiplierBps: 10_000,
     tokens: [{ symbol: "TEST", address: zero, decimals: 6 }],
   };

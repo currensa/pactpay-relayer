@@ -12,10 +12,11 @@ export class QuoteController {
   @Post("quote")
   @Throttle({ default: { limit: 30, ttl: 60_000 } })
   async create(@Body() input: CreateWithdrawQuoteDto) {
-    const quote = await this.quotes.create(input);
+    const quote = await this.quotes.createWithdraw(input);
     const chain = this.configuration.chain(quote.chainId);
     return {
       id: quote.id,
+      operation: quote.operation,
       chainId: quote.chainId,
       gravArc: quote.gravArc,
       gravArcDisplay: displayAddress(quote.gravArc, chain.family),

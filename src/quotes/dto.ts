@@ -1,6 +1,6 @@
 import { IsIn, IsInt, IsString, Matches, Min } from "class-validator";
 
-export class CreateWithdrawQuoteDto {
+export class CreateQuoteDto {
   @IsInt()
   @Min(1)
   chainId!: number;
@@ -16,3 +16,6 @@ export class CreateWithdrawQuoteDto {
   @IsIn([8, 16, 32, 64, 128])
   tier!: number;
 }
+
+export class CreateWithdrawQuoteDto extends CreateQuoteDto {}
+export class CreateRefundQuoteDto extends CreateQuoteDto {}

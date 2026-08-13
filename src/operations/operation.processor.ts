@@ -67,7 +67,7 @@ export class OperationProcessor {
       const quote = this.database.getQuote(operation.quoteId);
       if (!quote) throw new SimulationRejectedError("The operation quote is unavailable");
       if (quote.expiresAt <= Date.now()) throw new SimulationRejectedError("The operation quote expired before simulation");
-      const simulation = await adapter.simulate(operation.calldata);
+      const simulation = await adapter.simulate(operation.calldata, operation.operation);
       const token = adapter.config.tokens.find((entry) => entry.address === quote.token);
       if (!token) throw new SimulationRejectedError("The quoted token is no longer supported");
       const currentNativeCost = await adapter.simulatedNativeCost(simulation);

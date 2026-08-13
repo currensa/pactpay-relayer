@@ -1,6 +1,6 @@
 import { TronWeb } from "tronweb";
 import { SimulationRejectedError } from "../common/errors";
-import type { CircuitTier, TronChainConfig } from "../config/types";
+import type { CircuitTier, RelayedOperation, TronChainConfig } from "../config/types";
 import { canonicalAddress, displayAddress } from "./address";
 import type { ChainAdapter, SignedTransaction, SimulationResult, TransactionStatus } from "./types";
 
@@ -39,31 +39,34 @@ export class TronChainAdapter implements ChainAdapter {
     return { energy: BigInt(energy), bandwidth: BigInt(bandwidth) };
   }
 
-  async estimateNativeNetworkCosts(tiers: CircuitTier[]): Promise<Map<CircuitTier, bigint>> {
+  async estimateNativeNetworkCosts(operation: RelayedOperation, tiers: CircuitTier[]): Promise<Map<CircuitTier, bigint>> {
     const prices = await this.resourcePrices();
+    const energyByTier = operation === "refund" ? this.config.refundEnergyByTier : this.config.energyByTier;
+    const bandwidthByTier = operation === "refund" ? this.config.refundBandwidthByTier : this.config.bandwidthByTier;
     return new Map(tiers.map((tier) => {
-      const raw = BigInt(this.config.energyByTier[String(tier)]!) * prices.energy
-        + BigInt(this.config.bandwidthByTier[String(tier)]!) * prices.bandwidth;
+      const raw = BigInt(energyByTier[String(tier)]!) * prices.energy
+        + BigInt(bandwidthByTier[String(tier)]!) * prices.bandwidth;
       return [tier, (raw * BigInt(this.config.feeLimitMultiplierBps) + 9_999n) / 10_000n];
     }));
   }
 
   private input(calldata: string): string { return calldata.replace(/^0x/, ""); }
 
-  async simulate(calldata: string): Promise<SimulationResult> {
+  async simulate(calldata: string, operation: RelayedOperation): Promise<SimulationResult> {
     const contract = displayAddress(this.config.gravArc, "tron");
     const options = { input: this.input(calldata), callValue: 0, feeLimit: this.config.maxFeeSun };
     try {
       const constant = await this.tronWeb.transactionBuilder.triggerConstantContract(contract, "", options, [], this.relayerDisplay) as TronWrapper;
-      if (!constant.result?.result) throw new SimulationRejectedError(reason(constant.result?.message, "TRON constant execution rejected the withdrawal"));
+      if (!constant.result?.result) throw new SimulationRejectedError(reason(constant.result?.message, "TRON constant execution rejected the operation"));
       const estimate = await this.tronWeb.transactionBuilder.estimateEnergy(contract, "", options, [], this.relayerDisplay) as TronWrapper;
       if (!estimate.result?.result || !Number.isSafeInteger(estimate.energy_required)) {
-        throw new SimulationRejectedError(reason(estimate.result?.message, "TRON energy estimation rejected the withdrawal"));
+        throw new SimulationRejectedError(reason(estimate.result?.message, "TRON energy estimation rejected the operation"));
       }
       const energy = BigInt(estimate.energy_required!);
       if (energy > BigInt(this.config.maxEnergy)) throw new SimulationRejectedError(`Estimated energy ${energy} exceeds configured maximum ${this.config.maxEnergy}`);
       const prices = await this.resourcePrices();
-      const bandwidth = BigInt(Math.max(...Object.values(this.config.bandwidthByTier)));
+      const bandwidthEstimates = operation === "refund" ? this.config.refundBandwidthByTier : this.config.bandwidthByTier;
+      const bandwidth = BigInt(Math.max(...Object.values(bandwidthEstimates)));
       const cost = energy * prices.energy + bandwidth * prices.bandwidth;
       const feeLimit = (cost * BigInt(this.config.feeLimitMultiplierBps) + 9_999n) / 10_000n;
       const transactionLimit = feeLimit > BigInt(this.config.maxFeeSun) ? BigInt(this.config.maxFeeSun) : feeLimit;
@@ -82,7 +85,7 @@ export class TronChainAdapter implements ChainAdapter {
     const built = await this.tronWeb.transactionBuilder.triggerSmartContract(
       contract, "", { input: this.input(calldata), callValue: 0, feeLimit }, [], this.relayerDisplay,
     ) as TronWrapper;
-    if (!built.result?.result || !built.transaction) throw new Error(reason(built.result?.message, "Could not build TRON withdrawal transaction"));
+    if (!built.result?.result || !built.transaction) throw new Error(reason(built.result?.message, "Could not build TRON relayer transaction"));
     const transaction = built.transaction as Parameters<typeof this.tronWeb.transactionBuilder.extendExpiration>[0];
     const extended = await this.tronWeb.transactionBuilder.extendExpiration(transaction, 5 * 60);
     const signed = await this.tronWeb.trx.signTransaction(extended, this.privateKey) as unknown as Record<string, unknown>;

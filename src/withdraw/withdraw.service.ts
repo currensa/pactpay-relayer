@@ -18,7 +18,7 @@ export class WithdrawService {
   submit(input: SubmitWithdrawDto) {
     const chain = this.configuration.chain(input.chainId);
     const quote = this.quotes.get(input.quoteId);
-    if (quote.chainId !== input.chainId || quote.gravArc !== chain.gravArc) throw new RelayerError("QUOTE_MISMATCH", "Quote does not belong to this chain or GravArc contract", 409);
+    if (quote.operation !== "withdraw" || quote.chainId !== input.chainId || quote.gravArc !== chain.gravArc) throw new RelayerError("QUOTE_MISMATCH", "Quote does not authorize a withdrawal on this chain and GravArc contract", 409);
     const withdrawal = parseWithdrawalCalldata(input.calldata, chain.family, this.configuration.value.maxRequestBytes);
     if (withdrawal.recipient === ZERO_ADDRESS) throw new RelayerError("RECIPIENT_INVALID", "Withdrawal recipient cannot be zero", 422);
     if (withdrawal.token !== quote.token || withdrawal.expectedAmount.toString() !== quote.amount || withdrawal.tier !== quote.tier) {
@@ -30,7 +30,8 @@ export class WithdrawService {
     if (withdrawal.fee >= withdrawal.expectedAmount) throw new RelayerError("FEE_EXCEEDS_AMOUNT", "Withdrawal fee must be less than its amount", 422);
     return this.operations.create({
       quoteId: quote.id, chainId: chain.chainId, gravArc: chain.gravArc, calldata: input.calldata.toLowerCase(),
-      nullifierHash: withdrawal.nullifierHash, nonce: withdrawal.nonce,
+      operation: "withdraw", nullifierHash: withdrawal.nullifierHash, nonce: withdrawal.nonce,
+      reservationKey: `${withdrawal.nullifierHash}:${withdrawal.nonce}`,
     });
   }
 }

@@ -1,5 +1,8 @@
+import type { RelayedOperation } from "../config/types";
+
 export type QuoteRecord = {
   id: string;
+  operation: RelayedOperation;
   chainId: number;
   gravArc: string;
   relayer: string;
@@ -18,9 +21,11 @@ export type OperationState = "queued" | "simulating" | "signed" | "submitted" | 
 
 export type OperationRecord = {
   id: string;
+  operation: RelayedOperation;
   quoteId: string;
   chainId: number;
   requestHash: string;
+  reservationKey: string;
   nullifierHash: string;
   withdrawNonce: string;
   state: OperationState;
@@ -39,4 +44,4 @@ export type OperationRecord = {
 };
 
 export type NewQuote = Omit<QuoteRecord, "usedAt">;
-export type NewOperation = Pick<OperationRecord, "id" | "quoteId" | "chainId" | "requestHash" | "nullifierHash" | "withdrawNonce" | "calldata">;
+export type NewOperation = Pick<OperationRecord, "id" | "operation" | "quoteId" | "chainId" | "requestHash" | "reservationKey" | "nullifierHash" | "withdrawNonce" | "calldata">;

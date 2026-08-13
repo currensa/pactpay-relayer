@@ -29,6 +29,11 @@ function tierMap(value: unknown, label: string): Record<string, number> {
   return result;
 }
 
+function scaledTierMap(value: unknown, fallback: Record<string, number>, label: string): Record<string, number> {
+  if (value !== undefined) return tierMap(value, label);
+  return Object.fromEntries(Object.entries(fallback).map(([tier, amount]) => [tier, amount * 2]));
+}
+
 function httpRpc(publicChain: Record<string, unknown>, label: string): string {
   const wallet = publicChain.wallet === undefined ? {} : object(publicChain.wallet, `${label}.wallet`);
   const walletUrls = Array.isArray(wallet.rpcUrls) ? wallet.rpcUrls : [];
@@ -110,18 +115,26 @@ function parseChain(
       decimals: nativeDecimals,
     }, ...pricedTokens],
   };
-  if (family === "evm") return {
+  if (family === "evm") {
+    const gasByTier = tierMap(row.gasByTier, `${label}.gasByTier`);
+    return {
     ...base,
     family,
-    gasByTier: tierMap(row.gasByTier, `${label}.gasByTier`),
+    gasByTier,
+    refundGasByTier: scaledTierMap(row.refundGasByTier, gasByTier, `${label}.refundGasByTier`),
     maxGas: integer(row.maxGas, `${label}.maxGas`, 1),
     gasLimitMultiplierBps: integer(row.gasLimitMultiplierBps ?? 12_000, `${label}.gasLimitMultiplierBps`, 10_000),
-  };
+    };
+  }
+  const energyByTier = tierMap(row.energyByTier, `${label}.energyByTier`);
+  const bandwidthByTier = tierMap(row.bandwidthByTier, `${label}.bandwidthByTier`);
   return {
     ...base,
     family,
-    energyByTier: tierMap(row.energyByTier, `${label}.energyByTier`),
-    bandwidthByTier: tierMap(row.bandwidthByTier, `${label}.bandwidthByTier`),
+    energyByTier,
+    bandwidthByTier,
+    refundEnergyByTier: scaledTierMap(row.refundEnergyByTier, energyByTier, `${label}.refundEnergyByTier`),
+    refundBandwidthByTier: scaledTierMap(row.refundBandwidthByTier, bandwidthByTier, `${label}.refundBandwidthByTier`),
     maxEnergy: integer(row.maxEnergy, `${label}.maxEnergy`, 1),
     maxFeeSun: integer(row.maxFeeSun, `${label}.maxFeeSun`, 1),
     feeLimitMultiplierBps: integer(row.feeLimitMultiplierBps ?? 12_000, `${label}.feeLimitMultiplierBps`, 10_000),
@@ -143,7 +156,7 @@ export function parseConfiguration(publicValue: unknown, relayerValue: unknown):
     priceCacheSeconds: integer(row.priceCacheSeconds ?? 30, "relayer configuration.priceCacheSeconds", 1),
     priceRequestTimeoutMs: integer(row.priceRequestTimeoutMs ?? 5000, "relayer configuration.priceRequestTimeoutMs", 100),
     priceSafetyMarginBps: integer(row.priceSafetyMarginBps ?? 10_500, "relayer configuration.priceSafetyMarginBps", 10_000),
-    serviceFeeBps: integer(row.serviceFeeBps ?? 10, "relayer configuration.serviceFeeBps", 1),
+    serviceFeeBps: integer(row.serviceFeeBps ?? 10, "relayer configuration.serviceFeeBps", 10),
     maxTotalFeeBps: integer(row.maxTotalFeeBps ?? 5000, "relayer configuration.maxTotalFeeBps", 1),
     maxRequestBytes: integer(row.maxRequestBytes ?? 65_536, "relayer configuration.maxRequestBytes", 1024),
     maxQueuedPerChain: integer(row.maxQueuedPerChain ?? 100, "relayer configuration.maxQueuedPerChain", 1),
