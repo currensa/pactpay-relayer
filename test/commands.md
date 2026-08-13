@@ -5,6 +5,9 @@
 ```bash
 curl --fail-with-body --silent --show-error \
   http://localhost:9000/status
+
+curl --fail-with-body --silent --show-error \
+  http://150.109.25.172:9000/status
 ```
 
 ## Refund quote
