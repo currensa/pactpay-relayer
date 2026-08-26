@@ -123,10 +123,30 @@ export class DatabaseService implements OnModuleDestroy {
     return row ? quote(row) : undefined;
   }
 
+  private retryable(operation: OperationRecord): boolean {
+    return operation.state === "failed" && operation.signedPayload === null && operation.txHash === null;
+  }
+
+  private reuseFailedOperation(current: OperationRecord, value: NewOperation, now: number): OperationRecord {
+    if (!this.retryable(current)) throw new Error(`Operation ${current.id} is not safely reusable`);
+    this.db.prepare("UPDATE quotes SET used_at = ? WHERE id = ? AND used_at IS NULL").run(now, value.quoteId);
+    this.db.prepare(`UPDATE operations SET
+      operation = @operation, quote_id = @quoteId, chain_id = @chainId, request_hash = @requestHash,
+      reservation_key = @reservationKey, nullifier_hash = @nullifierHash, withdraw_nonce = @withdrawNonce,
+      state = 'queued', calldata = @calldata, signed_payload = NULL, tx_hash = NULL, block_number = NULL,
+      error_code = NULL, error_message = NULL, attempts = 0, next_attempt_at = @now,
+      updated_at = @now, submitted_at = NULL, confirmed_at = NULL
+      WHERE id = @id`).run({ ...value, id: current.id, now });
+    return this.getOperation(current.id)!;
+  }
+
   createOperationFromQuote(value: NewOperation, now = Date.now()): { operation: OperationRecord; created: boolean } {
     return this.db.transaction(() => {
-      const existing = this.db.prepare("SELECT * FROM operations WHERE request_hash = ?").get(value.requestHash) as Record<string, unknown> | undefined;
-      if (existing) return { operation: operation(existing), created: false };
+      const existingRow = this.db.prepare("SELECT * FROM operations WHERE request_hash = ?").get(value.requestHash) as Record<string, unknown> | undefined;
+      const existing = existingRow ? operation(existingRow) : undefined;
+      if (existing?.quoteId === value.quoteId || (existing && !this.retryable(existing))) {
+        return { operation: existing, created: false };
+      }
       const storedQuote = this.db.prepare("SELECT * FROM quotes WHERE id = ?").get(value.quoteId) as Record<string, unknown> | undefined;
       if (!storedQuote) throw new RelayerError("QUOTE_NOT_FOUND", "Quote was not found", 404);
       const parsedQuote = quote(storedQuote);
@@ -135,7 +155,10 @@ export class DatabaseService implements OnModuleDestroy {
       const activeCount = Number((this.db.prepare("SELECT COUNT(*) AS count FROM operations WHERE chain_id = ? AND state IN ('queued','simulating','signed','submitted')").get(value.chainId) as { count: number }).count);
       if (activeCount >= this.configuration.value.maxQueuedPerChain) throw new RelayerError("QUEUE_FULL", "The relayer queue is full for this chain", 503);
       if (parsedQuote.operation !== value.operation) throw new RelayerError("QUOTE_MISMATCH", "Quote does not authorize this operation type", 409);
-      const conflict = this.db.prepare("SELECT id FROM operations WHERE chain_id = ? AND operation = ? AND reservation_key = ?").get(value.chainId, value.operation, value.reservationKey) as { id: string } | undefined;
+      const conflictRow = this.db.prepare("SELECT * FROM operations WHERE chain_id = ? AND operation = ? AND reservation_key = ?").get(value.chainId, value.operation, value.reservationKey) as Record<string, unknown> | undefined;
+      const conflict = conflictRow ? operation(conflictRow) : undefined;
+      const reusable = existing ?? (conflict && this.retryable(conflict) ? conflict : undefined);
+      if (reusable) return { operation: this.reuseFailedOperation(reusable, value, now), created: true };
       if (conflict) throw new RelayerError("OPERATION_RESERVED", `This ${value.operation} is already reserved by operation ${conflict.id}`, 409);
       this.db.prepare("UPDATE quotes SET used_at = ? WHERE id = ? AND used_at IS NULL").run(now, value.quoteId);
       this.db.prepare(`INSERT INTO operations
@@ -155,8 +178,16 @@ export class DatabaseService implements OnModuleDestroy {
 
   nextOperation(chainId: number, now = Date.now()): OperationRecord | undefined {
     const row = this.db.prepare(`SELECT * FROM operations
-      WHERE chain_id = ? AND state IN ('submitted','signed','queued') AND next_attempt_at <= ?
-      ORDER BY CASE state WHEN 'submitted' THEN 0 WHEN 'signed' THEN 1 ELSE 2 END, created_at LIMIT 1`
+      WHERE chain_id = ? AND state IN ('signed','queued') AND next_attempt_at <= ?
+      ORDER BY CASE state WHEN 'signed' THEN 0 ELSE 1 END, next_attempt_at, created_at LIMIT 1`
+    ).get(chainId, now) as Record<string, unknown> | undefined;
+    return row ? operation(row) : undefined;
+  }
+
+  nextSubmittedOperation(chainId: number, now = Date.now()): OperationRecord | undefined {
+    const row = this.db.prepare(`SELECT * FROM operations
+      WHERE chain_id = ? AND state = 'submitted' AND next_attempt_at <= ?
+      ORDER BY next_attempt_at, created_at LIMIT 1`
     ).get(chainId, now) as Record<string, unknown> | undefined;
     return row ? operation(row) : undefined;
   }

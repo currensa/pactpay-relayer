@@ -13,6 +13,13 @@ test("fetches, caches, and conservatively converts CoinGecko USD prices", async 
     priceAssetId: "usd-coin",
   };
   chain.tokens.push(token);
+  const secondToken = {
+    symbol: "JST",
+    address: "0x3333333333333333333333333333333333333333",
+    decimals: 6,
+    priceAssetId: "just",
+  };
+  chain.tokens.push(secondToken);
   const config = configuration(":memory:", chain);
   const originalFetch = globalThis.fetch;
   let requests = 0;
@@ -22,13 +29,18 @@ test("fetches, caches, and conservatively converts CoinGecko USD prices", async 
     return new Response(JSON.stringify({
       "test-native": { usd: 0.5, last_updated_at: updated },
       "usd-coin": { usd: 1, last_updated_at: updated },
+      "just": { usd: 0.25, last_updated_at: updated },
     }), { status: 200, headers: { "content-type": "application/json" } });
   };
   try {
     const pricing = new PricingService(config);
-    const first = await pricing.networkCostInToken(chain, token, 10n ** 6n);
+    const [first, other] = await Promise.all([
+      pricing.networkCostInToken(chain, token, 10n ** 6n),
+      pricing.networkCostInToken(chain, secondToken, 10n ** 6n),
+    ]);
     const second = await pricing.networkCostInToken(chain, token, 10n ** 6n);
     assert.equal(first.amount, 525_000n);
+    assert.equal(other.amount, 2_100_000n);
     assert.equal(second.amount, 525_000n);
     assert.equal(requests, 1);
   } finally {

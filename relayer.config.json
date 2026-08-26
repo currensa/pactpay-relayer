@@ -3,7 +3,7 @@
   "host": "0.0.0.0",
   "port": 9000,
   "databasePath": "./data/relayer.db",
-  "quoteTtlSeconds": 120,
+  "quoteTtlSeconds": 600,
   "pricingMaxAgeSeconds": 3600,
   "priceCacheSeconds": 30,
   "priceRequestTimeoutMs": 5000,

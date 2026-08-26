@@ -25,10 +25,18 @@ export class OperationProcessor {
     await Promise.all(this.configuration.value.chains.map(async (chain) => {
       if (this.busy.has(chain.chainId)) return;
       const operation = this.database.nextOperation(chain.chainId);
-      if (!operation) return;
+      const submitted = this.database.nextSubmittedOperation(chain.chainId);
+      if (!operation && !submitted) return;
       this.busy.add(chain.chainId);
-      try { await this.process(operation); }
-      catch (error) { this.logger.error(`Operation ${operation.id}: ${error instanceof Error ? error.message : String(error)}`); }
+      try {
+        // Progress one signing lane and one confirmation lane independently.
+        // A slow/missing receipt must not starve an accepted queued operation.
+        for (const candidate of [operation, submitted]) {
+          if (!candidate) continue;
+          try { await this.process(candidate); }
+          catch (error) { this.logger.error(`Operation ${candidate.id}: ${error instanceof Error ? error.message : String(error)}`); }
+        }
+      }
       finally { this.busy.delete(chain.chainId); }
     }));
   }
@@ -66,7 +74,9 @@ export class OperationProcessor {
       operation = this.database.transition(operation.id, ["queued"], "simulating");
       const quote = this.database.getQuote(operation.quoteId);
       if (!quote) throw new SimulationRejectedError("The operation quote is unavailable");
-      if (quote.expiresAt <= Date.now()) throw new SimulationRejectedError("The operation quote expired before simulation");
+      // Expiry controls admission in createOperationFromQuote. Once accepted,
+      // an operation owns its quote and may wait in the durable queue. The
+      // current network cost is still revalidated below before signing.
       const simulation = await adapter.simulate(operation.calldata, operation.operation);
       const token = adapter.config.tokens.find((entry) => entry.address === quote.token);
       if (!token) throw new SimulationRejectedError("The quoted token is no longer supported");

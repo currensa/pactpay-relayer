@@ -36,19 +36,37 @@ test("persists a signed payload before broadcast and confirms through polling", 
   database.insertQuote({
     id: "quote-3", operation: "withdraw", chainId: chain.chainId, gravArc: chain.gravArc,
     relayer: adapter.relayerCanonical, token: zero, amount: "1000000", tier: 8,
-    networkFee: "100", serviceFee: "1000", fee: "1100", createdAt: now, expiresAt: now + 60_000,
+    networkFee: "100", serviceFee: "1000", fee: "1100", createdAt: now, expiresAt: now + 10,
   });
   database.createOperationFromQuote({
     id: "operation-3", operation: "withdraw", reservationKey: `0x${"77".repeat(32)}:0`, quoteId: "quote-3", chainId: chain.chainId, requestHash: `0x${"66".repeat(32)}`,
     nullifierHash: `0x${"77".repeat(32)}`, withdrawNonce: "0", calldata: "0x1234",
   });
   const processor = new OperationProcessor(config, database, chains, new PricingService(config));
+  await new Promise((resolve) => setTimeout(resolve, 20));
   await processor.tick();
   const submitted = database.getOperation("operation-3")!;
   assert.equal(submitted.state, "submitted");
   assert.equal(submitted.signedPayload, "signed-raw");
   assert.equal(broadcasted, 1);
+
+  database.insertQuote({
+    id: "quote-3b", operation: "withdraw", chainId: chain.chainId, gravArc: chain.gravArc,
+    relayer: adapter.relayerCanonical, token: zero, amount: "1000000", tier: 8,
+    networkFee: "100", serviceFee: "1000", fee: "1100", createdAt: Date.now(), expiresAt: Date.now() + 60_000,
+  });
+  database.createOperationFromQuote({
+    id: "operation-3b", operation: "withdraw", reservationKey: `0x${"79".repeat(32)}:0`, quoteId: "quote-3b",
+    chainId: chain.chainId, requestHash: `0x${"68".repeat(32)}`,
+    nullifierHash: `0x${"79".repeat(32)}`, withdrawNonce: "0", calldata: "0x5678",
+  });
+  await processor.tick();
+  assert.equal(database.getOperation("operation-3")?.state, "submitted");
+  assert.equal(database.getOperation("operation-3b")?.state, "submitted");
+  assert.equal(broadcasted, 2);
+
   status = { state: "confirmed", blockNumber: 10, confirmations: 1 };
+  database.defer("operation-3", 0);
   await processor.tick();
   assert.equal(database.getOperation("operation-3")?.state, "confirmed");
   database.onModuleDestroy();

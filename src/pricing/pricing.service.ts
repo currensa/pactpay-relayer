@@ -25,7 +25,7 @@ function decimal(value: number): string {
 @Injectable()
 export class PricingService {
   private readonly cache = new Map<string, UsdPrice>();
-  private readonly inFlight = new Map<string, Promise<Map<string, UsdPrice>>>();
+  private inFlight: Promise<Map<string, UsdPrice>> | null = null;
 
   constructor(private readonly configuration: ConfigurationService) {}
 
@@ -34,19 +34,30 @@ export class PricingService {
     return price && now - price.cachedAt <= this.configuration.value.priceCacheSeconds * 1000 ? price : undefined;
   }
 
+  private configuredAssetIds(): string[] {
+    return [...new Set(this.configuration.value.chains.flatMap(chain => [
+      ...(chain.nativePriceAssetId ? [chain.nativePriceAssetId] : []),
+      ...chain.tokens.flatMap(token => token.priceAssetId ? [token.priceAssetId] : []),
+    ]))].sort();
+  }
+
   private async fetchPrices(assetIds: string[]): Promise<Map<string, UsdPrice>> {
     const ids = [...new Set(assetIds)].sort();
     const now = Date.now();
     const cached = ids.map((id) => [id, this.fresh(id, now)] as const);
     if (cached.every(([, value]) => value !== undefined)) return new Map(cached as Array<readonly [string, UsdPrice]>);
 
-    const key = ids.join(",");
-    const existing = this.inFlight.get(key);
-    if (existing) return existing;
-    const request = this.request(ids);
-    this.inFlight.set(key, request);
-    try { return await request; }
-    finally { if (this.inFlight.get(key) === request) this.inFlight.delete(key); }
+    if (!this.inFlight) {
+      const request = this.request([...new Set([...this.configuredAssetIds(), ...ids])].sort());
+      this.inFlight = request;
+      request.finally(() => { if (this.inFlight === request) this.inFlight = null; }).catch(() => undefined);
+    }
+    await this.inFlight;
+    const refreshed = ids.map((id) => [id, this.fresh(id, Date.now())] as const);
+    if (refreshed.some(([, value]) => value === undefined)) {
+      throw new RelayerError("PRICE_UNAVAILABLE", "CoinGecko pricing response omitted a requested asset", 503);
+    }
+    return new Map(refreshed as Array<readonly [string, UsdPrice]>);
   }
 
   private async request(ids: string[]): Promise<Map<string, UsdPrice>> {
