@@ -66,6 +66,7 @@ test("persists a signed payload before broadcast and confirms through polling", 
   assert.equal(broadcasted, 2);
 
   status = { state: "confirmed", blockNumber: 10, confirmations: 1 };
+  database.defer("operation-3b", 60_000);
   database.defer("operation-3", 0);
   await processor.tick();
   assert.equal(database.getOperation("operation-3")?.state, "confirmed");
