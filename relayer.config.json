@@ -47,6 +47,36 @@
           "priceAssetId": "usd-coin"
         }
       ]
+    },
+    {
+      "chainId": 3448148188,
+      "privateKeyEnv": "RELAYER_PRIVATE_KEY_TRON",
+      "confirmations": 19,
+      "energyByTier": { "8": 317537, "16": 400000, "32": 500000, "64": 700000, "128": 1100000 },
+      "bandwidthByTier": { "8": 860, "16": 1150, "32": 1700, "64": 2800, "128": 5000 },
+      "refundEnergyByTier": { "8": 493155, "16": 600000, "32": 750000, "64": 1000000, "128": 1500000 },
+      "refundBandwidthByTier": { "8": 1115, "16": 1400, "32": 1950, "64": 3100, "128": 5300 },
+      "maxEnergy": 3000000,
+      "maxFeeSun": 1000000000,
+      "feeLimitMultiplierBps": 12000,
+      "nativePriceAssetId": "tron",
+      "tokenPricing": [
+        {
+          "address": "0x8df49db5dbf07e498492d2dafcf7b305cdc72471",
+          "decimals": 18,
+          "priceAssetId": "bittorrent"
+        },
+        {
+          "address": "0xeca9bc828a3005b9a3b909f2cc5c2a54794de05f",
+          "decimals": 6,
+          "priceAssetId": "tether"
+        },
+        {
+          "address": "0x37349aeb75a32f8c4c090daff376cf975f5d2eba",
+          "decimals": 18,
+          "priceAssetId": "just"
+        }
+      ]
     }
   ]
 }

@@ -120,5 +120,43 @@
     "RefundVerifier_32": "0xD4d6E34e5a233Fa808533fa08D36BA5C5d4166e7",
     "RefundVerifier_64": "0xBe2E7EacD8a8294f2d94c6fce44bDAC6d950cF12",
     "RefundVerifier_128": "0x7F766A9B84551502b1471254704d19349749760a"
+  },
+  "3448148188": {
+    "chainName": "TRON Nile Testnet",
+    "family": "tron",
+    "confirmations": 19,
+    "rpcUrl": "https://nile.trongrid.io/jsonrpc",
+    "wallet": {
+      "nativeCurrency": {
+        "name": "TRON",
+        "symbol": "TRX",
+        "decimals": 6
+      },
+      "rpcUrls": [
+        "https://nile.trongrid.io"
+      ],
+      "blockExplorerUrls": [
+        "https://nile.tronscan.org"
+      ]
+    },
+    "erc20Tokens": [
+      {
+        "symbol": "BTT",
+        "name": "BitTorrent",
+        "address": "0x8df49db5dbf07e498492d2dafcf7b305cdc72471"
+      },
+      {
+        "symbol": "USDT",
+        "name": "Tether USD",
+        "address": "0xeca9bc828a3005b9a3b909f2cc5c2a54794de05f"
+      },
+      {
+        "symbol": "JST",
+        "name": "JUST GOV v1.0",
+        "address": "0x37349aeb75a32f8c4c090daff376cf975f5d2eba"
+      }
+    ],
+    "GravArc": "0x024ae7397e0facc7afb9ed5b8b2b431c52ca130c",
+    "StartBlock": 69574318
   }
 }
