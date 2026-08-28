@@ -5,7 +5,7 @@ import { join } from "node:path";
 import test from "node:test";
 import type { ChainService } from "../src/chain/chain.service";
 import type { ChainAdapter, SignedTransaction, SimulationResult, TransactionStatus } from "../src/chain/types";
-import { SimulationRejectedError } from "../src/common/errors";
+import { SimulationRejectedError, TransientRpcError } from "../src/common/errors";
 import { DatabaseService } from "../src/database/database.service";
 import { OperationProcessor } from "../src/operations/operation.processor";
 import { PricingService } from "../src/pricing/pricing.service";
@@ -106,6 +106,54 @@ test("never signs or broadcasts a simulation-rejected proof", async () => {
   assert.equal(result.errorCode, "SIMULATION_REJECTED");
   assert.equal(signed, false);
   assert.equal(broadcasted, false);
+  database.onModuleDestroy();
+  await rm(directory, { recursive: true, force: true });
+});
+
+test("retries a transient simulation failure twice before failing the third attempt", async () => {
+  const directory = await mkdtemp(join(tmpdir(), "pactpay-relayer-"));
+  const config = configuration(join(directory, "relayer.db"));
+  const database = new DatabaseService(config);
+  const chain = evmChain();
+  let simulations = 0;
+  let signed = false;
+  const adapter = {
+    config: chain,
+    relayerCanonical: "0x2222222222222222222222222222222222222222",
+    relayerDisplay: "0x2222222222222222222222222222222222222222",
+    simulate: async () => { simulations += 1; throw new TransientRpcError("CPU timeout"); },
+    sign: async () => { signed = true; throw new Error("must not sign"); },
+  } as unknown as ChainAdapter;
+  const chains = { get: () => adapter } as unknown as ChainService;
+  const now = Date.now();
+  database.insertQuote({
+    id: "quote-transient", operation: "withdraw", chainId: chain.chainId, gravArc: chain.gravArc,
+    relayer: adapter.relayerCanonical, token: zero, amount: "1000000", tier: 8,
+    networkFee: "100", serviceFee: "1000", fee: "1100", createdAt: now, expiresAt: now + 60_000,
+  });
+  database.createOperationFromQuote({
+    id: "operation-transient", operation: "withdraw", reservationKey: `0x${"aa".repeat(32)}:0`,
+    quoteId: "quote-transient", chainId: chain.chainId, requestHash: `0x${"bb".repeat(32)}`,
+    nullifierHash: `0x${"aa".repeat(32)}`, withdrawNonce: "0", calldata: "0x1234",
+  });
+  const processor = new OperationProcessor(config, database, chains, new PricingService(config));
+
+  await processor.tick();
+  assert.equal(database.getOperation("operation-transient")?.state, "queued");
+  assert.equal(database.getOperation("operation-transient")?.attempts, 1);
+  database.defer("operation-transient", 0);
+
+  await processor.tick();
+  assert.equal(database.getOperation("operation-transient")?.state, "queued");
+  assert.equal(database.getOperation("operation-transient")?.attempts, 2);
+  database.defer("operation-transient", 0);
+
+  await processor.tick();
+  const result = database.getOperation("operation-transient")!;
+  assert.equal(result.state, "failed");
+  assert.equal(result.errorCode, "RPC_RETRY_EXHAUSTED");
+  assert.equal(simulations, 3);
+  assert.equal(signed, false);
   database.onModuleDestroy();
   await rm(directory, { recursive: true, force: true });
 });

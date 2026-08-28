@@ -2,7 +2,7 @@ import { Injectable, Logger } from "@nestjs/common";
 import { Interval } from "@nestjs/schedule";
 import { ChainService } from "../chain/chain.service";
 import type { SignedTransaction } from "../chain/types";
-import { SimulationRejectedError } from "../common/errors";
+import { SimulationRejectedError, TransientRpcError } from "../common/errors";
 import { ConfigurationService } from "../config/configuration.service";
 import { DatabaseService } from "../database/database.service";
 import type { OperationRecord, OperationState } from "../database/types";
@@ -10,6 +10,7 @@ import { PricingService } from "../pricing/pricing.service";
 
 @Injectable()
 export class OperationProcessor {
+  private static readonly MAX_TRANSIENT_SIMULATION_ATTEMPTS = 3;
   private readonly logger = new Logger(OperationProcessor.name);
   private readonly busy = new Set<number>();
 
@@ -94,6 +95,17 @@ export class OperationProcessor {
       if (!current || current.state === "confirmed" || current.state === "failed") throw error;
       if (error instanceof SimulationRejectedError && current.state === "simulating") {
         this.database.transition(current.id, ["simulating"], "failed", { errorCode: error.code, errorMessage: error.message });
+        return;
+      }
+      if (error instanceof TransientRpcError && current.state === "simulating") {
+        if (current.attempts + 1 >= OperationProcessor.MAX_TRANSIENT_SIMULATION_ATTEMPTS) {
+          this.database.transition(current.id, ["simulating"], "failed", {
+            errorCode: "RPC_RETRY_EXHAUSTED",
+            errorMessage: `TRON simulation remained unavailable after ${OperationProcessor.MAX_TRANSIENT_SIMULATION_ATTEMPTS} attempts: ${error.message}`,
+          });
+          return;
+        }
+        this.database.retry(current.id, "queued", error);
         return;
       }
       const retryState: OperationState = current.state === "simulating" ? "queued" : current.state;

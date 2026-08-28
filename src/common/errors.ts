@@ -11,3 +11,10 @@ export class SimulationRejectedError extends RelayerError {
     this.name = "SimulationRejectedError";
   }
 }
+
+export class TransientRpcError extends RelayerError {
+  constructor(message: string) {
+    super("RPC_TEMPORARY", message, 503);
+    this.name = "TransientRpcError";
+  }
+}

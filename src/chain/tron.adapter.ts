@@ -1,5 +1,5 @@
 import { TronWeb } from "tronweb";
-import { SimulationRejectedError } from "../common/errors";
+import { SimulationRejectedError, TransientRpcError } from "../common/errors";
 import type { CircuitTier, RelayedOperation, TronChainConfig } from "../config/types";
 import { canonicalAddress, displayAddress } from "./address";
 import type { ChainAdapter, SignedTransaction, SimulationResult, TransactionStatus } from "./types";
@@ -9,6 +9,14 @@ type TronWrapper = { result?: { result?: boolean; message?: string }; energy_req
 function reason(value: string | undefined, fallback: string): string {
   if (!value) return fallback;
   try { return TronWeb.toUtf8(value); } catch { return fallback; }
+}
+
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
+function isTransient(error: unknown): boolean {
+  return /outoftimeexception|cpu timeout|timed?\s*out|too many requests|\b429\b|\b502\b|\b503\b|\b504\b|econnreset|econnrefused|etimedout|socket hang up|fetch failed|network error/i.test(errorMessage(error));
 }
 
 export class TronChainAdapter implements ChainAdapter {
@@ -57,10 +65,18 @@ export class TronChainAdapter implements ChainAdapter {
     const options = { input: this.input(calldata), callValue: 0, feeLimit: this.config.maxFeeSun };
     try {
       const constant = await this.tronWeb.transactionBuilder.triggerConstantContract(contract, "", options, [], this.relayerDisplay) as TronWrapper;
-      if (!constant.result?.result) throw new SimulationRejectedError(reason(constant.result?.message, "TRON constant execution rejected the operation"));
+      if (!constant.result?.result) {
+        if (!constant.result?.message) throw new TransientRpcError("TRON constant execution returned an incomplete response");
+        const failure = reason(constant.result.message, "TRON constant execution rejected the operation");
+        if (isTransient(failure)) throw new TransientRpcError(failure);
+        throw new SimulationRejectedError(failure);
+      }
       const estimate = await this.tronWeb.transactionBuilder.estimateEnergy(contract, "", options, [], this.relayerDisplay) as TronWrapper;
       if (!estimate.result?.result || !Number.isSafeInteger(estimate.energy_required)) {
-        throw new SimulationRejectedError(reason(estimate.result?.message, "TRON energy estimation rejected the operation"));
+        if (!estimate.result?.message) throw new TransientRpcError("TRON energy estimation returned an incomplete response");
+        const failure = reason(estimate.result.message, "TRON energy estimation rejected the operation");
+        if (isTransient(failure)) throw new TransientRpcError(failure);
+        throw new SimulationRejectedError(failure);
       }
       const energy = BigInt(estimate.energy_required!);
       if (energy > BigInt(this.config.maxEnergy)) throw new SimulationRejectedError(`Estimated energy ${energy} exceeds configured maximum ${this.config.maxEnergy}`);
@@ -72,7 +88,8 @@ export class TronChainAdapter implements ChainAdapter {
       const transactionLimit = feeLimit > BigInt(this.config.maxFeeSun) ? BigInt(this.config.maxFeeSun) : feeLimit;
       return { executionUnits: energy, transactionLimit, nativeCost: transactionLimit };
     } catch (error) {
-      if (error instanceof SimulationRejectedError) throw error;
+      if (error instanceof SimulationRejectedError || error instanceof TransientRpcError) throw error;
+      if (isTransient(error)) throw new TransientRpcError(errorMessage(error));
       throw error;
     }
   }
