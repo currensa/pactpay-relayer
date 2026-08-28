@@ -65,7 +65,7 @@ export class TronChainAdapter implements ChainAdapter {
 
   private input(calldata: string): string { return calldata.replace(/^0x/, ""); }
 
-  async simulate(calldata: string, operation: RelayedOperation): Promise<SimulationResult> {
+  async simulate(calldata: string, operation: RelayedOperation, tier: CircuitTier): Promise<SimulationResult> {
     const contract = displayAddress(this.config.gravArc, "tron");
     const options = { input: this.input(calldata), callValue: 0, feeLimit: this.config.maxFeeSun };
     try {
@@ -91,7 +91,7 @@ export class TronChainAdapter implements ChainAdapter {
       if (energy > BigInt(this.config.maxEnergy)) throw new SimulationRejectedError(`Estimated energy ${energy} exceeds configured maximum ${this.config.maxEnergy}`);
       const prices = await this.resourcePrices();
       const bandwidthEstimates = operation === "refund" ? this.config.refundBandwidthByTier : this.config.bandwidthByTier;
-      const bandwidth = BigInt(Math.max(...Object.values(bandwidthEstimates)));
+      const bandwidth = BigInt(bandwidthEstimates[String(tier)]!);
       const cost = energy * prices.energy + bandwidth * prices.bandwidth;
       const feeLimit = (cost * BigInt(this.config.feeLimitMultiplierBps) + 9_999n) / 10_000n;
       const transactionLimit = feeLimit > BigInt(this.config.maxFeeSun) ? BigInt(this.config.maxFeeSun) : feeLimit;

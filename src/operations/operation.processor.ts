@@ -4,6 +4,7 @@ import { ChainService } from "../chain/chain.service";
 import type { SignedTransaction } from "../chain/types";
 import { SimulationRejectedError, TransientRpcError } from "../common/errors";
 import { ConfigurationService } from "../config/configuration.service";
+import type { CircuitTier } from "../config/types";
 import { DatabaseService } from "../database/database.service";
 import type { OperationRecord, OperationState } from "../database/types";
 import { PricingService } from "../pricing/pricing.service";
@@ -78,7 +79,7 @@ export class OperationProcessor {
       // Expiry controls admission in createOperationFromQuote. Once accepted,
       // an operation owns its quote and may wait in the durable queue. The
       // current network cost is still revalidated below before signing.
-      const simulation = await adapter.simulate(operation.calldata, operation.operation);
+      const simulation = await adapter.simulate(operation.calldata, operation.operation, quote.tier as CircuitTier);
       const token = adapter.config.tokens.find((entry) => entry.address === quote.token);
       if (!token) throw new SimulationRejectedError("The quoted token is no longer supported");
       const currentNativeCost = await adapter.simulatedNativeCost(simulation);

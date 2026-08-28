@@ -46,7 +46,7 @@ export class EvmChainAdapter implements ChainAdapter {
     ]));
   }
 
-  async simulate(calldata: string, _operation: RelayedOperation): Promise<SimulationResult> {
+  async simulate(calldata: string, _operation: RelayedOperation, _tier: CircuitTier): Promise<SimulationResult> {
     const request = { from: this.relayerDisplay, to: getAddress(this.config.gravArc), data: calldata, value: 0n };
     try {
       await this.provider.send("eth_call", [{
