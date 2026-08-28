@@ -4,7 +4,12 @@ import type { CircuitTier, RelayedOperation, TronChainConfig } from "../config/t
 import { canonicalAddress, displayAddress } from "./address";
 import type { ChainAdapter, SignedTransaction, SimulationResult, TransactionStatus } from "./types";
 
-type TronWrapper = { result?: { result?: boolean; message?: string }; energy_required?: number; transaction?: unknown };
+type TronWrapper = {
+  result?: { result?: boolean; message?: string };
+  energy_required?: number;
+  energy_used?: number;
+  transaction?: unknown;
+};
 
 function reason(value: string | undefined, fallback: string): string {
   if (!value) return fallback;
@@ -71,14 +76,18 @@ export class TronChainAdapter implements ChainAdapter {
         if (isTransient(failure)) throw new TransientRpcError(failure);
         throw new SimulationRejectedError(failure);
       }
-      const estimate = await this.tronWeb.transactionBuilder.estimateEnergy(contract, "", options, [], this.relayerDisplay) as TronWrapper;
-      if (!estimate.result?.result || !Number.isSafeInteger(estimate.energy_required)) {
-        if (!estimate.result?.message) throw new TransientRpcError("TRON energy estimation returned an incomplete response");
-        const failure = reason(estimate.result.message, "TRON energy estimation rejected the operation");
-        if (isTransient(failure)) throw new TransientRpcError(failure);
-        throw new SimulationRejectedError(failure);
+      let estimatedEnergy = constant.energy_used;
+      if (!Number.isSafeInteger(estimatedEnergy)) {
+        const estimate = await this.tronWeb.transactionBuilder.estimateEnergy(contract, "", options, [], this.relayerDisplay) as TronWrapper;
+        estimatedEnergy = estimate.energy_required ?? estimate.energy_used;
+        if (!estimate.result?.result || !Number.isSafeInteger(estimatedEnergy)) {
+          if (!estimate.result?.message) throw new TransientRpcError("TRON energy estimation returned an incomplete response");
+          const failure = reason(estimate.result.message, "TRON energy estimation rejected the operation");
+          if (isTransient(failure)) throw new TransientRpcError(failure);
+          throw new SimulationRejectedError(failure);
+        }
       }
-      const energy = BigInt(estimate.energy_required!);
+      const energy = BigInt(estimatedEnergy!);
       if (energy > BigInt(this.config.maxEnergy)) throw new SimulationRejectedError(`Estimated energy ${energy} exceeds configured maximum ${this.config.maxEnergy}`);
       const prices = await this.resourcePrices();
       const bandwidthEstimates = operation === "refund" ? this.config.refundBandwidthByTier : this.config.bandwidthByTier;
