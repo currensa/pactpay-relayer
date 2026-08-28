@@ -2,7 +2,7 @@
   "11155111": {
     "family": "evm",
     "rpcUrl": "wss://ethereum-sepolia-rpc.publicnode.com",
-    "StartBlock": 11214643,
+    "StartBlock": 11583491,
     "DepositVerifier_128": "0x37Cf8C6820690DA3c1EC5BbaC3878599248341B9",
     "DepositVerifier_16": "0xF39ccd6F64D8581D8800F9dCca5CD479BBeDf4C9",
     "DepositVerifier_32": "0x4244e2E1FBcfefE04223Ad26F38257e87361f0D7",
@@ -27,7 +27,7 @@
         "https://sepolia.etherscan.io"
       ]
     },
-    "GravArc": "0xB18672C43f214576429622FA8aE54404C313BDA4",
+    "GravArc": "0x69A348d4921CAaDD074BEa42b50d6cE066e3Bb59",
     "erc20Tokens": [
       {
         "symbol": "MCK",
@@ -45,8 +45,8 @@
         "address": "0xCb264aA91Aa82E1C6E70F716dFB1306D78a4Aa90"
       }
     ],
-    "PureRouter": "0xD1A67016b5D50925FAE6b0BA547E5c651Ee54E8d",
-    "PactPrivacyDefiRouter": "0x36f341F8939dFf8760Cc29F41c34C09df424833D",
+    "PureRouter": "0x5EBFA133aC1a41f74d589E7051bc8E2a233cCc6F",
+    "PactPrivacyDefiRouter": "0xCCEbB7B1119711c42164837000e13CEEE3b745d2",
     "defiProtocols": [
       {
         "name": "MockSwap",
@@ -73,7 +73,7 @@
     "WithdrawVerifier_32": "0xcFdaA6153bd053466A08c7AE75C534023D5D10cc",
     "WithdrawVerifier_64": "0x37Cf8C6820690DA3c1EC5BbaC3878599248341B9",
     "WithdrawVerifier_128": "0x8618C38C479c80a6Cc975Fe034Ea041e7467C8Ce",
-    "GravArc": "0x4143142154Cf802E7e3bfA512FBF36d63ED9E3C1",
+    "GravArc": "0xB18672C43f214576429622FA8aE54404C313BDA4",
     "rpcUrl": "https://forno.celo-sepolia.celo-testnet.org",
     "wallet": {
       "nativeCurrency": {
@@ -88,7 +88,7 @@
         "https://celo-sepolia.blockscout.com"
       ]
     },
-    "StartBlock": 30047466,
+    "StartBlock": 34619497,
     "erc20Tokens": [
       {
         "symbol": "MCK",
@@ -106,8 +106,8 @@
         "address": "0xBe815BEFDdE4857541EFcD76FbF8368841f737D1"
       }
     ],
-    "PureRouter": "0x1D5D1Be89610295E8bFC196d5DE0EC8ebCDc3DbB",
-    "PactPrivacyDefiRouter": "0x1Da2C541Fb8eF7B9fBc42A1E1E2Cf993Bc62Af52",
+    "PureRouter": "0xD1A67016b5D50925FAE6b0BA547E5c651Ee54E8d",
+    "PactPrivacyDefiRouter": "0x36f341F8939dFf8760Cc29F41c34C09df424833D",
     "defiProtocols": [
       {
         "name": "MockSwap",
@@ -156,7 +156,9 @@
         "address": "0x37349aeb75a32f8c4c090daff376cf975f5d2eba"
       }
     ],
-    "GravArc": "0x024ae7397e0facc7afb9ed5b8b2b431c52ca130c",
-    "StartBlock": 69574318
+    "GravArc": "0x0943dcbaa39ee8548fc1865b22614fbbfbdc3d95",
+    "StartBlock": 70461779,
+    "PureRouter": "0x11cc283bbe2dbba6ec71e6cd7adaca097e979b06",
+    "PactPrivacyDefiRouter": "0x24486faaa22dc321ea147694e67bd00df91c0b48"
   }
 }
