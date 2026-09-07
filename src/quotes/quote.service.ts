@@ -44,11 +44,11 @@ export class QuoteService {
     return token;
   }
 
-  private totalFee(amount: bigint, networkFee: bigint): { networkFee: bigint; serviceFee: bigint; fee: bigint } {
+  private totalFee(amount: bigint, networkFee: bigint, feeLimitAmount = amount): { networkFee: bigint; serviceFee: bigint; fee: bigint } {
     const serviceFee = basisPointsCeil(amount, this.configuration.value.serviceFeeBps);
     const fee = networkFee + serviceFee;
-    if (fee >= amount) throw new RelayerError("FEE_EXCEEDS_AMOUNT", "Estimated relayer fee is not less than the operation amount", 422);
-    if (fee * 10_000n > amount * BigInt(this.configuration.value.maxTotalFeeBps)) {
+    if (fee >= feeLimitAmount) throw new RelayerError("FEE_EXCEEDS_AMOUNT", "Estimated relayer fee is not less than the operation amount", 422);
+    if (fee * 10_000n > feeLimitAmount * BigInt(this.configuration.value.maxTotalFeeBps)) {
       throw new RelayerError("FEE_LIMIT_EXCEEDED", "Estimated relayer fee exceeds the configured maximum percentage", 422);
     }
     return { networkFee, serviceFee, fee };
@@ -58,6 +58,7 @@ export class QuoteService {
     const chain = this.configuration.chain(input.chainId);
     const token = this.token(input.chainId, input.token);
     let amount = BigInt(input.amount);
+    const requestedAmount = amount;
     const tier = input.tier as CircuitTier;
     const estimates = await this.networkEstimates(operation, input.chainId);
     const networkNative = estimates.get(tier);
@@ -67,7 +68,7 @@ export class QuoteService {
       amount = (amount - networkFee.amount) * 10_000n / (10_000n + BigInt(this.configuration.value.serviceFeeBps));
       if (amount <= 0n) throw new RelayerError("FEE_EXCEEDS_AMOUNT", "Remaining allocation cannot cover the DeFi fee", 422);
     }
-    const fees = this.totalFee(amount, networkFee.amount);
+    const fees = this.totalFee(amount, networkFee.amount, operation === "defi" ? requestedAmount : amount);
     const now = Date.now();
     if (operation === "defi" && (!chain.defiRouter || !chain.pureRouter || chain.defiProtocols.length === 0)) {
       throw new RelayerError("DEFI_UNAVAILABLE", "DeFi relay is not configured for this chain", 422);

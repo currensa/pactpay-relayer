@@ -25,4 +25,11 @@ test("DeFi total budgets reserve fees and maximize the routed amount", async () 
     assert.ok(next + 100n + (next * 10n + 9999n) / 10000n > budget);
   }
   await assert.rejects(service.createDefi({ chainId: chain.chainId, token: zero, amount: "100", tier: 8 }), /cannot cover/);
+  await assert.rejects(
+    service.createDefi({ chainId: chain.chainId, token: zero, amount: "201", tier: 8 }),
+    /maximum percentage/,
+  );
+  const boundary = await service.createDefi({ chainId: chain.chainId, token: zero, amount: "202", tier: 8 });
+  assert.equal(boundary.amount, "101");
+  assert.equal(boundary.fee, "101");
 });
