@@ -57,12 +57,16 @@ export class QuoteService {
   async createFor(operation: RelayedOperation, input: CreateQuoteDto): Promise<QuoteRecord> {
     const chain = this.configuration.chain(input.chainId);
     const token = this.token(input.chainId, input.token);
-    const amount = BigInt(input.amount);
+    let amount = BigInt(input.amount);
     const tier = input.tier as CircuitTier;
     const estimates = await this.networkEstimates(operation, input.chainId);
     const networkNative = estimates.get(tier);
     if (networkNative === undefined) throw new Error(`No network estimate for tier ${tier}`);
     const networkFee = await this.pricing.networkCostInToken(chain, token, networkNative);
+    if (operation === "defi") {
+      amount = (amount - networkFee.amount) * 10_000n / (10_000n + BigInt(this.configuration.value.serviceFeeBps));
+      if (amount <= 0n) throw new RelayerError("FEE_EXCEEDS_AMOUNT", "Remaining allocation cannot cover the DeFi fee", 422);
+    }
     const fees = this.totalFee(amount, networkFee.amount);
     const now = Date.now();
     if (operation === "defi" && (!chain.defiRouter || !chain.pureRouter || chain.defiProtocols.length === 0)) {

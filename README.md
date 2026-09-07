@@ -69,8 +69,9 @@ npm run start:prod
   base-unit refund `amount`, and circuit `tier`.
 - `POST /v1/refund` accepts `chainId`, `quoteId`, and unsigned refund `calldata`,
   returning a durable operation ID.
-- `POST /v1/defi/quote` accepts `chainId`, input token, routed base-unit amount,
-  and circuit `tier`.
+- `POST /v1/defi/quote` accepts `chainId`, input token, gross base-unit
+  withdrawal `amount`, and circuit `tier`; it returns the largest swap amount
+  that fits after the network and service fees.
 - `POST /v1/defi` accepts `chainId`, `quoteId`, and proof-bound DeFi router
   `calldata`, returning a durable operation ID.
 - `GET /v1/operations/:id` returns queued, submitted, confirmed, or failed
