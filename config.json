@@ -159,6 +159,20 @@
     "GravArc": "0x0943dcbaa39ee8548fc1865b22614fbbfbdc3d95",
     "StartBlock": 70461779,
     "PureRouter": "0x11cc283bbe2dbba6ec71e6cd7adaca097e979b06",
-    "PactPrivacyDefiRouter": "0x24486faaa22dc321ea147694e67bd00df91c0b48"
+    "PactPrivacyDefiRouter": "0x24486faaa22dc321ea147694e67bd00df91c0b48",
+    "defiProtocols": [
+      {
+        "name": "SunSwap V4",
+        "type": "sunswap-v4",
+        "outputBehavior": "variable",
+        "address": "0x33bfa6c58f7915e91506a1732c2738a88801cba4",
+        "help-contracts": {
+          "universalRouter": "0x33bfa6c58f7915e91506a1732c2738a88801cba4",
+          "permit2": "0xf62f506d1faa02e2354a9886b4a200496ee96f4b",
+          "poolManager": "0xd8aec7918153470da1c6cfe464063b590ceec8b6",
+          "quoter": "0xe251a5870a84bd4c87bc4aff0b7bb2b299436278"
+        }
+      }
+    ]
   }
 }
