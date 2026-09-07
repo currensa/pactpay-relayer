@@ -49,7 +49,7 @@ export class DatabaseService implements OnModuleDestroy {
     this.db.exec(`
       CREATE TABLE IF NOT EXISTS quotes (
         id TEXT PRIMARY KEY,
-        operation TEXT NOT NULL DEFAULT 'withdraw' CHECK(operation IN ('withdraw','refund')),
+        operation TEXT NOT NULL DEFAULT 'withdraw' CHECK(operation IN ('withdraw','refund','defi')),
         chain_id INTEGER NOT NULL,
         grav_arc TEXT NOT NULL,
         relayer TEXT NOT NULL,
@@ -67,7 +67,7 @@ export class DatabaseService implements OnModuleDestroy {
 
       CREATE TABLE IF NOT EXISTS operations (
         id TEXT PRIMARY KEY,
-        operation TEXT NOT NULL DEFAULT 'withdraw' CHECK(operation IN ('withdraw','refund')),
+        operation TEXT NOT NULL DEFAULT 'withdraw' CHECK(operation IN ('withdraw','refund','defi')),
         quote_id TEXT NOT NULL UNIQUE REFERENCES quotes(id),
         chain_id INTEGER NOT NULL,
         request_hash TEXT NOT NULL UNIQUE,
@@ -100,7 +100,51 @@ export class DatabaseService implements OnModuleDestroy {
       this.db.exec("ALTER TABLE operations ADD COLUMN reservation_key TEXT NOT NULL DEFAULT ''");
       this.db.exec("UPDATE operations SET reservation_key = nullifier_hash || ':' || withdraw_nonce WHERE reservation_key = ''");
     }
+    this.migrateDefiOperationKind();
     this.db.exec("CREATE UNIQUE INDEX IF NOT EXISTS operations_reservation_idx ON operations(chain_id, operation, reservation_key)");
+  }
+
+  private migrateDefiOperationKind(): void {
+    const quoteSql = String((this.db.prepare("SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'quotes'").get() as { sql?: string } | undefined)?.sql ?? "");
+    const operationSql = String((this.db.prepare("SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'operations'").get() as { sql?: string } | undefined)?.sql ?? "");
+    if (quoteSql.includes("'defi'") && operationSql.includes("'defi'")) return;
+    this.db.pragma("foreign_keys = OFF");
+    try {
+      this.db.transaction(() => {
+        this.db.exec(`
+          DROP INDEX IF EXISTS quotes_expiry_idx;
+          DROP INDEX IF EXISTS operations_work_idx;
+          DROP INDEX IF EXISTS operations_tx_idx;
+          DROP INDEX IF EXISTS operations_reservation_idx;
+          ALTER TABLE operations RENAME TO operations_before_defi;
+          ALTER TABLE quotes RENAME TO quotes_before_defi;
+          CREATE TABLE quotes (
+            id TEXT PRIMARY KEY, operation TEXT NOT NULL DEFAULT 'withdraw' CHECK(operation IN ('withdraw','refund','defi')),
+            chain_id INTEGER NOT NULL, grav_arc TEXT NOT NULL, relayer TEXT NOT NULL, token TEXT NOT NULL, amount TEXT NOT NULL,
+            tier INTEGER NOT NULL, network_fee TEXT NOT NULL, service_fee TEXT NOT NULL, fee TEXT NOT NULL,
+            created_at INTEGER NOT NULL, expires_at INTEGER NOT NULL, used_at INTEGER
+          );
+          CREATE TABLE operations (
+            id TEXT PRIMARY KEY, operation TEXT NOT NULL DEFAULT 'withdraw' CHECK(operation IN ('withdraw','refund','defi')),
+            quote_id TEXT NOT NULL UNIQUE REFERENCES quotes(id), chain_id INTEGER NOT NULL, request_hash TEXT NOT NULL UNIQUE,
+            reservation_key TEXT NOT NULL DEFAULT '', nullifier_hash TEXT NOT NULL, withdraw_nonce TEXT NOT NULL,
+            state TEXT NOT NULL CHECK(state IN ('queued','simulating','signed','submitted','confirmed','failed')),
+            calldata TEXT NOT NULL, signed_payload TEXT, tx_hash TEXT, block_number INTEGER, error_code TEXT, error_message TEXT,
+            attempts INTEGER NOT NULL DEFAULT 0, next_attempt_at INTEGER NOT NULL, created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL,
+            submitted_at INTEGER, confirmed_at INTEGER, UNIQUE(chain_id, nullifier_hash, withdraw_nonce)
+          );
+          INSERT INTO quotes SELECT * FROM quotes_before_defi;
+          INSERT INTO operations SELECT * FROM operations_before_defi;
+          DROP TABLE operations_before_defi;
+          DROP TABLE quotes_before_defi;
+          CREATE INDEX quotes_expiry_idx ON quotes(expires_at);
+          CREATE INDEX operations_work_idx ON operations(chain_id, state, next_attempt_at, created_at);
+          CREATE INDEX operations_tx_idx ON operations(tx_hash);
+        `);
+      })();
+    } finally {
+      this.db.pragma("foreign_keys = ON");
+    }
   }
 
   private recoverInterrupted(): void {

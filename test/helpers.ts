@@ -6,12 +6,13 @@ export const zero = "0x0000000000000000000000000000000000000000";
 export function evmChain(): ChainConfig {
   return {
     chainId: 12345, name: "Test", family: "evm", rpcUrl: "http://127.0.0.1:1",
-    gravArc: "0x4444444444444444444444444444444444444444", privateKeyEnv: "TEST_KEY",
+    gravArc: "0x4444444444444444444444444444444444444444", privateKeyEnv: "TEST_KEY", defiProtocols: [],
     confirmations: 1, nativeSymbol: "TEST", nativeDecimals: 6,
     gasByTier: { "8": 100, "16": 100, "32": 100, "64": 100, "128": 100 },
     refundGasByTier: { "8": 200, "16": 200, "32": 200, "64": 200, "128": 200 },
+    defiGasByTier: { "8": 200, "16": 200, "32": 200, "64": 200, "128": 200 },
     maxGas: 1000, gasLimitMultiplierBps: 10_000,
-    tokens: [{ symbol: "TEST", address: zero, decimals: 6 }],
+    tokens: [{ symbol: "TEST", address: zero, decimals: 6 }], allowedTokens: [zero],
   };
 }
 

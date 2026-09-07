@@ -17,11 +17,13 @@ export class StatusService {
     const chains = await Promise.all(this.configuration.value.chains.map(async (chain) => {
       const adapter = this.chains.get(chain.chainId);
       try {
-        const [withdrawEstimates, refundEstimates] = await Promise.all([
+        const [withdrawEstimates, refundEstimates, defiEstimates] = await Promise.all([
           this.quotes.estimates("withdraw", chain.chainId),
           this.quotes.estimates("refund", chain.chainId),
+          this.quotes.estimates("defi", chain.chainId),
         ]);
         const refunds = new Map(refundEstimates.map((entry) => [entry.token.address, entry]));
+        const defi = new Map(defiEstimates.map((entry) => [entry.token.address, entry]));
         return {
           chainId: chain.chainId,
           name: chain.name,
@@ -37,12 +39,13 @@ export class StatusService {
             networkFeeByOperation: {
               withdraw: withdraw.available ? withdraw.networkFeeByTier : null,
               refund: refunds.get(token.address)?.available ? refunds.get(token.address)?.networkFeeByTier : null,
+              defi: defi.get(token.address)?.available ? defi.get(token.address)?.networkFeeByTier : null,
             },
           })),
           operations: {
             withdraw: { available: true, serviceFeeBps: this.configuration.value.serviceFeeBps, quoteTtlSeconds: this.configuration.value.quoteTtlSeconds },
             refund: { available: true, serviceFeeBps: this.configuration.value.serviceFeeBps, quoteTtlSeconds: this.configuration.value.quoteTtlSeconds },
-            defi: { available: false, estimatedFee: null },
+            defi: { available: !!chain.defiRouter && !!chain.pureRouter && chain.defiProtocols.length > 0, serviceFeeBps: this.configuration.value.serviceFeeBps, quoteTtlSeconds: this.configuration.value.quoteTtlSeconds },
           },
         };
       } catch (error) {

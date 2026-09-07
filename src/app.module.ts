@@ -12,6 +12,7 @@ import { QuoteModule } from "./quotes/quote.module";
 import { StatusModule } from "./status/status.module";
 import { WithdrawModule } from "./withdraw/withdraw.module";
 import { RefundModule } from "./refund/refund.module";
+import { DefiModule } from "./defi/defi.module";
 
 @Module({
   imports: [
@@ -25,6 +26,7 @@ import { RefundModule } from "./refund/refund.module";
     OperationModule,
     WithdrawModule,
     RefundModule,
+    DefiModule,
     StatusModule,
   ],
   providers: [

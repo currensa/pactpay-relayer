@@ -54,8 +54,10 @@ export class TronChainAdapter implements ChainAdapter {
 
   async estimateNativeNetworkCosts(operation: RelayedOperation, tiers: CircuitTier[]): Promise<Map<CircuitTier, bigint>> {
     const prices = await this.resourcePrices();
-    const energyByTier = operation === "refund" ? this.config.refundEnergyByTier : this.config.energyByTier;
-    const bandwidthByTier = operation === "refund" ? this.config.refundBandwidthByTier : this.config.bandwidthByTier;
+    const energyByTier = operation === "refund" ? this.config.refundEnergyByTier
+      : operation === "defi" ? this.config.defiEnergyByTier : this.config.energyByTier;
+    const bandwidthByTier = operation === "refund" ? this.config.refundBandwidthByTier
+      : operation === "defi" ? this.config.defiBandwidthByTier : this.config.bandwidthByTier;
     return new Map(tiers.map((tier) => {
       const raw = BigInt(energyByTier[String(tier)]!) * prices.energy
         + BigInt(bandwidthByTier[String(tier)]!) * prices.bandwidth;
@@ -65,8 +67,14 @@ export class TronChainAdapter implements ChainAdapter {
 
   private input(calldata: string): string { return calldata.replace(/^0x/, ""); }
 
+  private target(operation: RelayedOperation): string {
+    if (operation !== "defi") return this.config.gravArc;
+    if (!this.config.defiRouter) throw new SimulationRejectedError("DeFi relay is not configured for this chain");
+    return this.config.defiRouter;
+  }
+
   async simulate(calldata: string, operation: RelayedOperation, tier: CircuitTier): Promise<SimulationResult> {
-    const contract = displayAddress(this.config.gravArc, "tron");
+    const contract = displayAddress(this.target(operation), "tron");
     const options = { input: this.input(calldata), callValue: 0, feeLimit: this.config.maxFeeSun };
     try {
       const constant = await this.tronWeb.transactionBuilder.triggerConstantContract(contract, "", options, [], this.relayerDisplay) as TronWrapper;
@@ -90,7 +98,8 @@ export class TronChainAdapter implements ChainAdapter {
       const energy = BigInt(estimatedEnergy!);
       if (energy > BigInt(this.config.maxEnergy)) throw new SimulationRejectedError(`Estimated energy ${energy} exceeds configured maximum ${this.config.maxEnergy}`);
       const prices = await this.resourcePrices();
-      const bandwidthEstimates = operation === "refund" ? this.config.refundBandwidthByTier : this.config.bandwidthByTier;
+      const bandwidthEstimates = operation === "refund" ? this.config.refundBandwidthByTier
+        : operation === "defi" ? this.config.defiBandwidthByTier : this.config.bandwidthByTier;
       const bandwidth = BigInt(bandwidthEstimates[String(tier)]!);
       const cost = energy * prices.energy + bandwidth * prices.bandwidth;
       const feeLimit = (cost * BigInt(this.config.feeLimitMultiplierBps) + 9_999n) / 10_000n;
@@ -105,8 +114,8 @@ export class TronChainAdapter implements ChainAdapter {
 
   async simulatedNativeCost(simulation: SimulationResult): Promise<bigint> { return simulation.nativeCost; }
 
-  async sign(calldata: string, simulation: SimulationResult): Promise<SignedTransaction> {
-    const contract = displayAddress(this.config.gravArc, "tron");
+  async sign(calldata: string, simulation: SimulationResult, operation: RelayedOperation): Promise<SignedTransaction> {
+    const contract = displayAddress(this.target(operation), "tron");
     const feeLimit = Number(simulation.transactionLimit);
     const built = await this.tronWeb.transactionBuilder.triggerSmartContract(
       contract, "", { input: this.input(calldata), callValue: 0, feeLimit }, [], this.relayerDisplay,

@@ -87,7 +87,7 @@ export class OperationProcessor {
       if (currentTokenCost.amount > BigInt(quote.networkFee)) {
         throw new SimulationRejectedError("Network cost increased above the locked quote; request a new quote");
       }
-      const transaction = await adapter.sign(operation.calldata, simulation);
+      const transaction = await adapter.sign(operation.calldata, simulation, operation.operation);
       operation = this.database.transition(operation.id, ["simulating"], "signed", { signedPayload: transaction.payload, txHash: transaction.hash });
       await adapter.broadcast(transaction);
       this.database.transition(operation.id, ["signed"], "submitted", { submittedAt: Date.now() });

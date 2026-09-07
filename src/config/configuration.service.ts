@@ -57,6 +57,27 @@ function publicTokens(publicChain: Record<string, unknown>, family: "evm" | "tro
   return result;
 }
 
+function optionalAddress(value: unknown, family: "evm" | "tron", label: string): string | undefined {
+  return value === undefined ? undefined : canonicalAddress(string(value, label), family);
+}
+
+function publicDefiProtocols(publicChain: Record<string, unknown>, family: "evm" | "tron", label: string) {
+  const values = publicChain.defiProtocols ?? [];
+  if (!Array.isArray(values)) throw new Error(`${label}.defiProtocols must be an array`);
+  return values.map((value, index) => {
+    const protocolLabel = `${label}.defiProtocols[${index}]`;
+    const row = object(value, protocolLabel);
+    const helpers = row["help-contracts"] === undefined ? [] : Object.values(object(row["help-contracts"], `${protocolLabel}.help-contracts`))
+      .map((address, helperIndex) => canonicalAddress(string(address, `${protocolLabel}.help-contracts[${helperIndex}]`), family));
+    return {
+      name: string(row.name, `${protocolLabel}.name`),
+      type: typeof row.type === "string" && row.type ? row.type : "mock-swap",
+      address: canonicalAddress(string(row.address, `${protocolLabel}.address`), family),
+      helpContracts: helpers,
+    };
+  });
+}
+
 function parsePricedToken(
   value: unknown,
   family: "evm" | "tron",
@@ -104,6 +125,9 @@ function parseChain(
     family,
     rpcUrl: httpRpc(publicChain, publicLabel),
     gravArc: canonicalAddress(string(publicChain.GravArc, `${publicLabel}.GravArc`), family),
+    pureRouter: optionalAddress(publicChain.PureRouter, family, `${publicLabel}.PureRouter`),
+    defiRouter: optionalAddress(publicChain.PactPrivacyDefiRouter, family, `${publicLabel}.PactPrivacyDefiRouter`),
+    defiProtocols: publicDefiProtocols(publicChain, family, publicLabel),
     privateKeyEnv: string(row.privateKeyEnv, `${label}.privateKeyEnv`),
     confirmations: integer(row.confirmations, `${label}.confirmations`, 1),
     nativeSymbol: string(native.symbol, `${publicLabel}.wallet.nativeCurrency.symbol`),
@@ -114,6 +138,7 @@ function parseChain(
       address: ZERO_ADDRESS,
       decimals: nativeDecimals,
     }, ...pricedTokens],
+    allowedTokens: [ZERO_ADDRESS, ...allowedTokens.keys()],
   };
   if (family === "evm") {
     const gasByTier = tierMap(row.gasByTier, `${label}.gasByTier`);
@@ -122,6 +147,7 @@ function parseChain(
     family,
     gasByTier,
     refundGasByTier: scaledTierMap(row.refundGasByTier, gasByTier, `${label}.refundGasByTier`),
+    defiGasByTier: scaledTierMap(row.defiGasByTier, gasByTier, `${label}.defiGasByTier`),
     maxGas: integer(row.maxGas, `${label}.maxGas`, 1),
     gasLimitMultiplierBps: integer(row.gasLimitMultiplierBps ?? 12_000, `${label}.gasLimitMultiplierBps`, 10_000),
     };
@@ -135,6 +161,8 @@ function parseChain(
     bandwidthByTier,
     refundEnergyByTier: scaledTierMap(row.refundEnergyByTier, energyByTier, `${label}.refundEnergyByTier`),
     refundBandwidthByTier: scaledTierMap(row.refundBandwidthByTier, bandwidthByTier, `${label}.refundBandwidthByTier`),
+    defiEnergyByTier: scaledTierMap(row.defiEnergyByTier, energyByTier, `${label}.defiEnergyByTier`),
+    defiBandwidthByTier: scaledTierMap(row.defiBandwidthByTier, bandwidthByTier, `${label}.defiBandwidthByTier`),
     maxEnergy: integer(row.maxEnergy, `${label}.maxEnergy`, 1),
     maxFeeSun: integer(row.maxFeeSun, `${label}.maxFeeSun`, 1),
     feeLimitMultiplierBps: integer(row.feeLimitMultiplierBps ?? 12_000, `${label}.feeLimitMultiplierBps`, 10_000),

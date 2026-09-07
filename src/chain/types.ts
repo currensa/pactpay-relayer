@@ -25,7 +25,7 @@ export interface ChainAdapter {
   estimateNativeNetworkCosts(operation: RelayedOperation, tiers: CircuitTier[]): Promise<Map<CircuitTier, bigint>>;
   simulate(calldata: string, operation: RelayedOperation, tier: CircuitTier): Promise<SimulationResult>;
   simulatedNativeCost(simulation: SimulationResult): Promise<bigint>;
-  sign(calldata: string, simulation: SimulationResult): Promise<SignedTransaction>;
+  sign(calldata: string, simulation: SimulationResult, operation: RelayedOperation): Promise<SignedTransaction>;
   broadcast(transaction: SignedTransaction): Promise<void>;
   transactionStatus(hash: string): Promise<TransactionStatus>;
   close(): void;

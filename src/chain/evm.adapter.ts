@@ -40,14 +40,21 @@ export class EvmChainAdapter implements ChainAdapter {
     const fees = await this.provider.getFeeData();
     const gasPrice = fees.maxFeePerGas ?? fees.gasPrice;
     if (gasPrice === null) throw new Error(`Chain ${this.config.chainId} did not return a gas price`);
-    const estimates = operation === "refund" ? this.config.refundGasByTier : this.config.gasByTier;
+    const estimates = operation === "refund" ? this.config.refundGasByTier
+      : operation === "defi" ? this.config.defiGasByTier : this.config.gasByTier;
     return new Map(tiers.map((tier) => [tier,
       (BigInt(estimates[String(tier)]!) * BigInt(this.config.gasLimitMultiplierBps) + 9_999n) / 10_000n * gasPrice,
     ]));
   }
 
-  async simulate(calldata: string, _operation: RelayedOperation, _tier: CircuitTier): Promise<SimulationResult> {
-    const request = { from: this.relayerDisplay, to: getAddress(this.config.gravArc), data: calldata, value: 0n };
+  private target(operation: RelayedOperation): string {
+    if (operation !== "defi") return this.config.gravArc;
+    if (!this.config.defiRouter) throw new SimulationRejectedError("DeFi relay is not configured for this chain");
+    return this.config.defiRouter;
+  }
+
+  async simulate(calldata: string, operation: RelayedOperation, _tier: CircuitTier): Promise<SimulationResult> {
+    const request = { from: this.relayerDisplay, to: getAddress(this.target(operation)), data: calldata, value: 0n };
     try {
       await this.provider.send("eth_call", [{
         from: request.from,
@@ -78,7 +85,7 @@ export class EvmChainAdapter implements ChainAdapter {
 
   async simulatedNativeCost(simulation: SimulationResult): Promise<bigint> { return simulation.nativeCost; }
 
-  async sign(calldata: string, simulation: SimulationResult): Promise<SignedTransaction> {
+  async sign(calldata: string, simulation: SimulationResult, operation: RelayedOperation): Promise<SignedTransaction> {
     const nonce = await this.provider.getTransactionCount(this.wallet.address, "pending");
     const maxFeePerGas = simulation.signingData?.maxFeePerGas;
     const maxPriorityFeePerGas = simulation.signingData?.maxPriorityFeePerGas;
@@ -87,7 +94,7 @@ export class EvmChainAdapter implements ChainAdapter {
     const transaction = {
       chainId: this.config.chainId,
       nonce,
-      to: getAddress(this.config.gravArc),
+      to: getAddress(this.target(operation)),
       data: calldata,
       value: 0n,
       gasLimit: simulation.transactionLimit,

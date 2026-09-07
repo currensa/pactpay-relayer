@@ -1,6 +1,8 @@
 export type ChainFamily = "evm" | "tron";
 export type CircuitTier = 8 | 16 | 32 | 64 | 128;
-export type RelayedOperation = "withdraw" | "refund";
+export type RelayedOperation = "withdraw" | "refund" | "defi";
+
+export type DefiProtocolConfig = { name: string; type: string; address: string; helpContracts: string[] };
 
 export type TokenConfig = {
   symbol: string;
@@ -16,18 +18,23 @@ export type BaseChainConfig = {
   family: ChainFamily;
   rpcUrl: string;
   gravArc: string;
+  pureRouter?: string;
+  defiRouter?: string;
+  defiProtocols: DefiProtocolConfig[];
   privateKeyEnv: string;
   confirmations: number;
   nativeSymbol: string;
   nativeDecimals: number;
   nativePriceAssetId?: string;
   tokens: TokenConfig[];
+  allowedTokens: string[];
 };
 
 export type EvmChainConfig = BaseChainConfig & {
   family: "evm";
   gasByTier: Record<string, number>;
   refundGasByTier: Record<string, number>;
+  defiGasByTier: Record<string, number>;
   maxGas: number;
   gasLimitMultiplierBps: number;
 };
@@ -38,6 +45,8 @@ export type TronChainConfig = BaseChainConfig & {
   bandwidthByTier: Record<string, number>;
   refundEnergyByTier: Record<string, number>;
   refundBandwidthByTier: Record<string, number>;
+  defiEnergyByTier: Record<string, number>;
+  defiBandwidthByTier: Record<string, number>;
   maxEnergy: number;
   maxFeeSun: number;
   feeLimitMultiplierBps: number;

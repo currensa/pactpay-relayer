@@ -10,9 +10,10 @@ const bandwidth = { "8": 100, "16": 200, "32": 500, "64": 1_000, "128": 5_000 };
 function chain(): TronChainConfig {
   return {
     chainId: 3448148188, name: "Nile", family: "tron", rpcUrl: "https://nile.trongrid.io",
-    gravArc: "0x0943dcbaa39ee8548fc1865b22614fbbfbdc3d95", privateKeyEnv: "TEST_KEY",
-    confirmations: 1, nativeSymbol: "TRX", nativeDecimals: 6, tokens: [{ symbol: "TRX", address: zero, decimals: 6 }],
+    gravArc: "0x0943dcbaa39ee8548fc1865b22614fbbfbdc3d95", privateKeyEnv: "TEST_KEY", defiProtocols: [],
+    confirmations: 1, nativeSymbol: "TRX", nativeDecimals: 6, tokens: [{ symbol: "TRX", address: zero, decimals: 6 }], allowedTokens: [zero],
     energyByTier: tiers, bandwidthByTier: bandwidth, refundEnergyByTier: tiers, refundBandwidthByTier: bandwidth,
+    defiEnergyByTier: tiers, defiBandwidthByTier: bandwidth,
     maxEnergy: 3_000_000, maxFeeSun: 1_000_000_000, feeLimitMultiplierBps: 12_000,
   };
 }

@@ -19,3 +19,4 @@ export class CreateQuoteDto {
 
 export class CreateWithdrawQuoteDto extends CreateQuoteDto {}
 export class CreateRefundQuoteDto extends CreateQuoteDto {}
+export class CreateDefiQuoteDto extends CreateQuoteDto {}

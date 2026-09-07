@@ -65,8 +65,11 @@ export class QuoteService {
     const networkFee = await this.pricing.networkCostInToken(chain, token, networkNative);
     const fees = this.totalFee(amount, networkFee.amount);
     const now = Date.now();
+    if (operation === "defi" && (!chain.defiRouter || !chain.pureRouter || chain.defiProtocols.length === 0)) {
+      throw new RelayerError("DEFI_UNAVAILABLE", "DeFi relay is not configured for this chain", 422);
+    }
     return this.database.insertQuote({
-      id: randomUUID(), operation, chainId: input.chainId, gravArc: chain.gravArc,
+      id: randomUUID(), operation, chainId: input.chainId, gravArc: operation === "defi" ? chain.defiRouter! : chain.gravArc,
       relayer: this.chains.get(input.chainId).relayerCanonical, token: token.address,
       amount: amount.toString(), tier, networkFee: fees.networkFee.toString(), serviceFee: fees.serviceFee.toString(),
       fee: fees.fee.toString(), createdAt: now, expiresAt: now + this.configuration.value.quoteTtlSeconds * 1000,
@@ -76,6 +79,7 @@ export class QuoteService {
   create(input: CreateQuoteDto): Promise<QuoteRecord> { return this.createFor("withdraw", input); }
   createWithdraw(input: CreateQuoteDto): Promise<QuoteRecord> { return this.createFor("withdraw", input); }
   createRefund(input: CreateQuoteDto): Promise<QuoteRecord> { return this.createFor("refund", input); }
+  createDefi(input: CreateQuoteDto): Promise<QuoteRecord> { return this.createFor("defi", input); }
 
   get(id: string): QuoteRecord {
     const value = this.database.getQuote(id);

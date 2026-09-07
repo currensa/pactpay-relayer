@@ -9,3 +9,7 @@ export const REFUND_TUPLE = "tuple(uint256[2] pA,uint256[2][2] pB,uint256[2] pC,
 export const GRAVARC_REFUND_ABI = [
   `function refund(${REFUND_TUPLE} p)`,
 ] as const;
+
+export const DEFI_ROUTER_ABI = [
+  `function defiRouting(${WITHDRAW_TUPLE} withdrawProof,tuple(uint256 defiFee,tuple(address target,uint256 value,bytes data)[] defiCalls) defiData)`,
+] as const;
