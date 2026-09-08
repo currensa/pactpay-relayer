@@ -139,13 +139,17 @@ test("retries a transient simulation failure twice before failing the third atte
   const processor = new OperationProcessor(config, database, chains, new PricingService(config));
 
   await processor.tick();
-  assert.equal(database.getOperation("operation-transient")?.state, "queued");
-  assert.equal(database.getOperation("operation-transient")?.attempts, 1);
+  let retry = database.getOperation("operation-transient")!;
+  assert.equal(retry.state, "queued");
+  assert.equal(retry.attempts, 1);
+  assert.ok(retry.nextAttemptAt - retry.updatedAt >= 10_000);
   database.defer("operation-transient", 0);
 
   await processor.tick();
-  assert.equal(database.getOperation("operation-transient")?.state, "queued");
-  assert.equal(database.getOperation("operation-transient")?.attempts, 2);
+  retry = database.getOperation("operation-transient")!;
+  assert.equal(retry.state, "queued");
+  assert.equal(retry.attempts, 2);
+  assert.ok(retry.nextAttemptAt - retry.updatedAt >= 30_000);
   database.defer("operation-transient", 0);
 
   await processor.tick();

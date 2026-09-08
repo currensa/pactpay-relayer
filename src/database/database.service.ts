@@ -252,12 +252,12 @@ export class DatabaseService implements OnModuleDestroy {
     return this.getOperation(id)!;
   }
 
-  retry(id: string, state: OperationState, error: Error): OperationRecord {
+  retry(id: string, state: OperationState, error: Error, delayMs?: number): OperationRecord {
     const current = this.getOperation(id);
     if (!current) throw new RelayerError("OPERATION_NOT_FOUND", "Operation was not found", 404);
     const attempts = current.attempts + 1;
     const now = Date.now();
-    const delay = Math.min(60_000, 1_000 * 2 ** Math.min(attempts, 6));
+    const delay = delayMs ?? Math.min(60_000, 1_000 * 2 ** Math.min(attempts, 6));
     this.db.prepare(`UPDATE operations SET state = ?, attempts = ?, next_attempt_at = ?, error_code = ?, error_message = ?, updated_at = ? WHERE id = ?`)
       .run(state, attempts, now + delay, "RPC_RETRY", error.message.slice(0, 500), now, id);
     return this.getOperation(id)!;

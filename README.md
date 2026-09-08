@@ -26,6 +26,8 @@ token pricing. The service always loads `./relayer.config.json`; public paths do
 not belong in `.env`. Keep only private keys and optional provider credentials
 in `.env`, and never put key material in either JSON file. Review both files
 before starting. Commit the public JSON configuration, but never commit `.env`.
+See [fee-introduction.md](./fee-introduction.md) for the quote, conversion,
+service-fee, simulation, and settlement rules.
 
 The native token is enabled automatically with a 1:1 conversion. To enable an
 ERC-20 or TRC-20 listed in `config.json`, add a matching `tokenPricing` entry to

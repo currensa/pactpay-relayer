@@ -12,6 +12,7 @@ import { PricingService } from "../pricing/pricing.service";
 @Injectable()
 export class OperationProcessor {
   private static readonly MAX_TRANSIENT_SIMULATION_ATTEMPTS = 3;
+  private static readonly TRANSIENT_SIMULATION_RETRY_DELAYS_MS = [10_000, 30_000] as const;
   private readonly logger = new Logger(OperationProcessor.name);
   private readonly busy = new Set<number>();
 
@@ -106,7 +107,8 @@ export class OperationProcessor {
           });
           return;
         }
-        this.database.retry(current.id, "queued", error);
+        const delay = OperationProcessor.TRANSIENT_SIMULATION_RETRY_DELAYS_MS[current.attempts];
+        this.database.retry(current.id, "queued", error, delay);
         return;
       }
       const retryState: OperationState = current.state === "simulating" ? "queued" : current.state;
