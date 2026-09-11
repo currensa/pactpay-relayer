@@ -1,12 +1,13 @@
 import { AbiCoder, Interface, concat, getBytes, keccak256 } from "ethers";
 import { canonicalAddress } from "../chain/address";
-import { DEFI_ROUTER_ABI } from "../chain/abi";
+import { DEFI_ROUTER_ABI, GRAVARC_DEPOSIT_ABI } from "../chain/abi";
 import { RelayerError } from "../common/errors";
 import type { ChainConfig, CircuitTier } from "../config/types";
 import { validateProtocolCalls } from "./protocols";
 import type { DefiCall } from "./protocols/types";
 
 const iface = new Interface(DEFI_ROUTER_ABI);
+const gravArc = new Interface(GRAVARC_DEPOSIT_ABI);
 const coder = AbiCoder.defaultAbiCoder();
 const tiers = new Set([8, 16, 32, 64, 128]);
 
@@ -18,8 +19,33 @@ export type ParsedDefi = {
   expectedAmount: bigint;
   defiAmount: bigint;
   defiFee: bigint;
+  privateRedeposit: boolean;
+  redepositTier: CircuitTier | null;
   reservationKey: string;
 };
+
+function redepositDetails(calls: DefiCall[], chain: ChainConfig): { privateRedeposit: boolean; redepositTier: CircuitTier | null } {
+  const deposits = calls.filter((call) => call.target === chain.gravArc);
+  if (deposits.length === 0) return { privateRedeposit: false, redepositTier: null };
+  if (chain.family === "tron") throw new RelayerError("TRON_REDEPOSIT_UNSUPPORTED", "Private re-deposit is not supported on TRON", 422);
+  if (deposits.length !== 1) {
+    throw new RelayerError("DEFI_REDEPOSIT_INVALID", "DeFi private re-deposit must contain exactly one deposit", 422);
+  }
+  let parsed;
+  try { parsed = gravArc.parseTransaction({ data: deposits[0]!.data }); }
+  catch { throw new RelayerError("DEFI_REDEPOSIT_INVALID", "Invalid private re-deposit calldata", 422); }
+  if (!parsed || parsed.name !== "deposit") throw new RelayerError("DEFI_REDEPOSIT_INVALID", "Invalid private re-deposit calldata", 422);
+  const params = parsed.args[0] as Record<string, unknown>;
+  const token = canonicalAddress(String(params.token), chain.family);
+  const amount = BigInt(String(params.totalAmount));
+  const expectedValue = token === "0x0000000000000000000000000000000000000000" ? amount : 0n;
+  if (amount <= 0n || deposits[0]!.value !== expectedValue) {
+    throw new RelayerError("DEFI_REDEPOSIT_INVALID", "Private re-deposit token value does not match its amount", 422);
+  }
+  const tier = Number(params.tier);
+  if (!tiers.has(tier)) throw new RelayerError("DEFI_REDEPOSIT_INVALID", "Private re-deposit tier is unsupported", 422);
+  return { privateRedeposit: true, redepositTier: tier as CircuitTier };
+}
 
 export function parseDefiCalldata(calldata: string, chain: ChainConfig, maxBytes: number): ParsedDefi {
   if (!/^0x[0-9a-fA-F]+$/.test(calldata) || calldata.length % 2 !== 0) throw new RelayerError("CALLDATA_INVALID", "Calldata must be even-length hexadecimal");
@@ -72,13 +98,14 @@ export function parseDefiCalldata(calldata: string, chain: ChainConfig, maxBytes
       inputToken: canonicalAddress(String(withdrawal.token), chain.family),
       defiAmount,
     });
+    const redeposit = redepositDetails(calls, chain);
     const callHashes = calls.map((call) => keccak256(coder.encode(["address", "uint256", "bytes"], [call.target, call.value, call.data])));
     const callsHash = keccak256(concat(callHashes.map((hash) => getBytes(hash))));
     const commitment = `0x${keccak256(coder.encode(["uint256", "bytes32"], [defiFee, callsHash])).slice(-40)}`;
     if (canonicalAddress(String(withdrawal.recipient), chain.family) !== commitment) throw new RelayerError("DEFI_COMMITMENT_MISMATCH", "DeFi call commitment is invalid", 409);
     return {
       nullifierHash, nonce, token: canonicalAddress(String(withdrawal.token), chain.family), tier: tier as CircuitTier,
-      expectedAmount, defiAmount, defiFee,
+      expectedAmount, defiAmount, defiFee, ...redeposit,
       reservationKey: `${nullifierHash}:${nonce}`,
     };
   } catch (error) {

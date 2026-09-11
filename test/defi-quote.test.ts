@@ -33,3 +33,34 @@ test("DeFi total budgets reserve fees and maximize the routed amount", async () 
   assert.equal(boundary.amount, "101");
   assert.equal(boundary.fee, "101");
 });
+
+test("private re-deposit quotes add and bind the deposit-tier network cost", async () => {
+  const chain = { ...evmChain(), defiRouter: zero, pureRouter: zero,
+    defiProtocols: [{ name: "Mock", type: "mock-swap", address: zero, helpContracts: {} }] };
+  const service = new QuoteService(configuration(":memory:", chain), {
+    get: () => ({
+      relayerCanonical: zero,
+      estimateNativeNetworkCosts: async (_operation: string, _tiers: number[], redepositTier?: number) => (
+        new Map([[8, redepositTier === undefined ? 100n : 200n]])
+      ),
+    }),
+  } as unknown as ChainService, {
+    insertQuote: (quote: QuoteRecord) => quote,
+  } as unknown as DatabaseService, {
+    networkCostInToken: async (_chain: unknown, _token: unknown, amount: bigint) => ({ amount }),
+  } as unknown as PricingService);
+
+  const publicQuote = await service.createDefi({ chainId: chain.chainId, token: zero, amount: "10000", tier: 8 });
+  const privateQuote = await service.createDefi({
+    chainId: chain.chainId, token: zero, amount: "10000", tier: 8, privateRedeposit: true, redepositTier: 8,
+  });
+  assert.equal(publicQuote.networkFee, "100");
+  assert.equal(publicQuote.privateRedeposit, false);
+  assert.equal(privateQuote.networkFee, "200");
+  assert.equal(privateQuote.privateRedeposit, true);
+  assert.equal(privateQuote.redepositTier, 8);
+  assert.throws(
+    () => service.createDefi({ chainId: chain.chainId, token: zero, amount: "10000", tier: 8, privateRedeposit: true }),
+    /requires redepositTier/,
+  );
+});

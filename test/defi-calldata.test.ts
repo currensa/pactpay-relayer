@@ -3,6 +3,10 @@ import test from "node:test";
 import { AbiCoder, Interface, concat, getBytes, keccak256 } from "ethers";
 import { DEFI_ROUTER_ABI, GRAVARC_DEPOSIT_ABI } from "../src/chain/abi";
 import { parseDefiCalldata } from "../src/defi/calldata";
+import { DefiService } from "../src/defi/defi.service";
+import type { ConfigurationService } from "../src/config/configuration.service";
+import type { QuoteService } from "../src/quotes/quote.service";
+import type { OperationService } from "../src/operations/operation.service";
 import { evmChain } from "./helpers";
 
 const protocol = "0x1111111111111111111111111111111111111111";
@@ -214,12 +218,35 @@ test("validates nested Uniswap V3 public-output calldata", () => {
   const result = parseDefiCalldata(calldata(uniswapCalls()), uniswapChain(), 65_536);
   assert.equal(result.token, inputToken);
   assert.equal(result.defiAmount, 100n);
+  assert.equal(result.privateRedeposit, false);
+  assert.equal(result.redepositTier, null);
 });
 
 test("validates Uniswap V3 fixed private re-deposit and excess sweep", () => {
   const calls = uniswapCalls({ recipient: pureRouter, privateRedeposit: true });
   const result = parseDefiCalldata(calldata(calls), uniswapChain(), 65_536);
   assert.equal(result.defiAmount, 100n);
+  assert.equal(result.privateRedeposit, true);
+  assert.equal(result.redepositTier, 8);
+});
+
+test("does not authorize private re-deposit calldata with a public-output quote", () => {
+  const chain = uniswapChain();
+  const calls = uniswapCalls({ recipient: pureRouter, privateRedeposit: true });
+  const quote = {
+    id: "quote", operation: "defi", chainId: chain.chainId, gravArc: defiRouter, relayer: publicRecipient,
+    token: inputToken, amount: "100", tier: 8, privateRedeposit: false, redepositTier: null,
+    networkFee: "9", serviceFee: "1", fee: "10", createdAt: Date.now(), expiresAt: Date.now() + 60_000, usedAt: null,
+  };
+  const service = new DefiService(
+    { chain: () => chain, value: { maxRequestBytes: 65_536 } } as unknown as ConfigurationService,
+    { get: () => quote } as unknown as QuoteService,
+    { create: () => { throw new Error("must not create"); } } as unknown as OperationService,
+  );
+  assert.throws(
+    () => service.submit({ chainId: chain.chainId, quoteId: quote.id, calldata: calldata(calls) }),
+    /output mode or private re-deposit tier/,
+  );
 });
 
 test("rejects tampered or expired nested Uniswap V3 calldata", () => {

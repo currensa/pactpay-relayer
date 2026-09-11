@@ -11,6 +11,7 @@ export function evmChain(): ChainConfig {
     gasByTier: { "8": 100, "16": 100, "32": 100, "64": 100, "128": 100 },
     refundGasByTier: { "8": 200, "16": 200, "32": 200, "64": 200, "128": 200 },
     defiGasByTier: { "8": 200, "16": 200, "32": 200, "64": 200, "128": 200 },
+    defiRedepositGasByTier: { "8": 100, "16": 100, "32": 100, "64": 100, "128": 100 },
     maxGas: 1000, gasLimitMultiplierBps: 10_000,
     tokens: [{ symbol: "TEST", address: zero, decimals: 6 }], allowedTokens: [zero],
   };

@@ -22,6 +22,12 @@ current RPC gas price. For TRON, it combines configured Energy and Bandwidth
 with the current chain resource prices. The chain's configured safety
 multiplier is then applied.
 
+An EVM public-output DeFi quote uses `defiGasByTier` for the withdrawal tier.
+A private re-deposit adds `defiRedepositGasByTier` for the independently
+selected deposit tier. Both the output mode and deposit tier are stored in the
+one-time quote and checked against the submitted calldata. TRON private
+re-deposit is unavailable.
+
 Native-token network fees use a 1:1 conversion. For another supported token,
 the relayer converts the native cost with CoinGecko prices, rounds upward, and
 applies `priceSafetyMarginBps`. Quotes fail when required pricing is missing or

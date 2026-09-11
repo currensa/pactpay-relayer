@@ -9,7 +9,7 @@ import type { CircuitTier, RelayedOperation, TokenConfig } from "../config/types
 import { DatabaseService } from "../database/database.service";
 import type { QuoteRecord } from "../database/types";
 import { PricingService } from "../pricing/pricing.service";
-import type { CreateQuoteDto } from "./dto";
+import type { CreateDefiQuoteDto, CreateQuoteDto } from "./dto";
 
 @Injectable()
 export class QuoteService {
@@ -22,13 +22,13 @@ export class QuoteService {
     private readonly pricing: PricingService,
   ) {}
 
-  private networkEstimates(operation: RelayedOperation, chainId: number): Promise<Map<CircuitTier, bigint>> {
+  private networkEstimates(operation: RelayedOperation, chainId: number, redepositTier?: CircuitTier): Promise<Map<CircuitTier, bigint>> {
     const now = Date.now();
-    const key = `${operation}:${chainId}`;
+    const key = `${operation}:${chainId}:${redepositTier ?? "public"}`;
     const cached = this.estimateCache.get(key);
     if (cached && cached.expiresAt > now) return cached.value;
     const tiers: CircuitTier[] = [8, 16, 32, 64, 128];
-    const value = this.chains.get(chainId).estimateNativeNetworkCosts(operation, tiers);
+    const value = this.chains.get(chainId).estimateNativeNetworkCosts(operation, tiers, redepositTier);
     this.estimateCache.set(key, { expiresAt: now + 10_000, value });
     value.catch(() => { if (this.estimateCache.get(key)?.value === value) this.estimateCache.delete(key); });
     return value;
@@ -54,13 +54,17 @@ export class QuoteService {
     return { networkFee, serviceFee, fee };
   }
 
-  async createFor(operation: RelayedOperation, input: CreateQuoteDto): Promise<QuoteRecord> {
+  async createFor(operation: RelayedOperation, input: CreateQuoteDto, redepositTier?: CircuitTier): Promise<QuoteRecord> {
     const chain = this.configuration.chain(input.chainId);
+    const privateRedeposit = operation === "defi" && redepositTier !== undefined;
+    if (privateRedeposit && chain.family !== "evm") {
+      throw new RelayerError("TRON_REDEPOSIT_UNSUPPORTED", "Private re-deposit is not supported on TRON", 422);
+    }
     const token = this.token(input.chainId, input.token);
     let amount = BigInt(input.amount);
     const requestedAmount = amount;
     const tier = input.tier as CircuitTier;
-    const estimates = await this.networkEstimates(operation, input.chainId);
+    const estimates = await this.networkEstimates(operation, input.chainId, redepositTier);
     const networkNative = estimates.get(tier);
     if (networkNative === undefined) throw new Error(`No network estimate for tier ${tier}`);
     const networkFee = await this.pricing.networkCostInToken(chain, token, networkNative);
@@ -76,7 +80,8 @@ export class QuoteService {
     return this.database.insertQuote({
       id: randomUUID(), operation, chainId: input.chainId, gravArc: operation === "defi" ? chain.defiRouter! : chain.gravArc,
       relayer: this.chains.get(input.chainId).relayerCanonical, token: token.address,
-      amount: amount.toString(), tier, networkFee: fees.networkFee.toString(), serviceFee: fees.serviceFee.toString(),
+      amount: amount.toString(), tier, privateRedeposit, redepositTier: redepositTier ?? null,
+      networkFee: fees.networkFee.toString(), serviceFee: fees.serviceFee.toString(),
       fee: fees.fee.toString(), createdAt: now, expiresAt: now + this.configuration.value.quoteTtlSeconds * 1000,
     });
   }
@@ -84,7 +89,13 @@ export class QuoteService {
   create(input: CreateQuoteDto): Promise<QuoteRecord> { return this.createFor("withdraw", input); }
   createWithdraw(input: CreateQuoteDto): Promise<QuoteRecord> { return this.createFor("withdraw", input); }
   createRefund(input: CreateQuoteDto): Promise<QuoteRecord> { return this.createFor("refund", input); }
-  createDefi(input: CreateQuoteDto): Promise<QuoteRecord> { return this.createFor("defi", input); }
+  createDefi(input: CreateDefiQuoteDto): Promise<QuoteRecord> {
+    const privateRedeposit = input.privateRedeposit ?? false;
+    if (privateRedeposit !== (input.redepositTier !== undefined)) {
+      throw new RelayerError("REDEPOSIT_TIER_INVALID", "Private re-deposit requires redepositTier, and public output must omit it", 422);
+    }
+    return this.createFor("defi", input, input.redepositTier as CircuitTier | undefined);
+  }
 
   get(id: string): QuoteRecord {
     const value = this.database.getQuote(id);

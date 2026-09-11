@@ -52,7 +52,8 @@ export class TronChainAdapter implements ChainAdapter {
     return { energy: BigInt(energy), bandwidth: BigInt(bandwidth) };
   }
 
-  async estimateNativeNetworkCosts(operation: RelayedOperation, tiers: CircuitTier[]): Promise<Map<CircuitTier, bigint>> {
+  async estimateNativeNetworkCosts(operation: RelayedOperation, tiers: CircuitTier[], redepositTier?: CircuitTier): Promise<Map<CircuitTier, bigint>> {
+    if (redepositTier !== undefined) throw new Error("Private DeFi re-deposit is not supported on TRON");
     const prices = await this.resourcePrices();
     const energyByTier = operation === "refund" ? this.config.refundEnergyByTier
       : operation === "defi" ? this.config.defiEnergyByTier : this.config.energyByTier;

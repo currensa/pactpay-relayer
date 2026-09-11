@@ -19,6 +19,7 @@ export class DefiController {
       defiRouter: quote.gravArc, defiRouterDisplay: displayAddress(quote.gravArc, chain.family),
       relayer: quote.relayer, relayerDisplay: displayAddress(quote.relayer, chain.family),
       token: quote.token, amount: quote.amount, tier: quote.tier, networkFee: quote.networkFee,
+      privateRedeposit: quote.privateRedeposit, redepositTier: quote.redepositTier,
       serviceFee: quote.serviceFee, fee: quote.fee, serviceFeeBps: this.configuration.value.serviceFeeBps,
       expiresAt: new Date(quote.expiresAt).toISOString(),
     };

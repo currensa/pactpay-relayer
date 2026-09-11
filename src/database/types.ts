@@ -9,6 +9,8 @@ export type QuoteRecord = {
   token: string;
   amount: string;
   tier: number;
+  privateRedeposit: boolean;
+  redepositTier: number | null;
   networkFee: string;
   serviceFee: string;
   fee: string;
@@ -43,5 +45,8 @@ export type OperationRecord = {
   confirmedAt: number | null;
 };
 
-export type NewQuote = Omit<QuoteRecord, "usedAt">;
+export type NewQuote = Omit<QuoteRecord, "usedAt" | "privateRedeposit" | "redepositTier"> & {
+  privateRedeposit?: boolean;
+  redepositTier?: number | null;
+};
 export type NewOperation = Pick<OperationRecord, "id" | "operation" | "quoteId" | "chainId" | "requestHash" | "reservationKey" | "nullifierHash" | "withdrawNonce" | "calldata">;

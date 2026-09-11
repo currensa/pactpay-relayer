@@ -19,6 +19,9 @@ export class DefiService {
       || value.token !== quote.token || value.tier !== quote.tier || value.defiAmount.toString() !== quote.amount) {
       throw new RelayerError("QUOTE_MISMATCH", "DeFi calldata does not match the quote", 409);
     }
+    if (value.privateRedeposit !== quote.privateRedeposit || value.redepositTier !== quote.redepositTier) {
+      throw new RelayerError("QUOTE_MISMATCH", "DeFi output mode or private re-deposit tier does not match the quote", 409);
+    }
     if (value.defiFee.toString() !== quote.fee) throw new RelayerError("QUOTE_MISMATCH", "DeFi relayer fee does not match the quote", 409);
     return this.operations.create({
       operation: "defi", quoteId: quote.id, chainId: chain.chainId, gravArc: chain.defiRouter,

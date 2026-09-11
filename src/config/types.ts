@@ -40,6 +40,8 @@ export type EvmChainConfig = BaseChainConfig & {
   gasByTier: Record<string, number>;
   refundGasByTier: Record<string, number>;
   defiGasByTier: Record<string, number>;
+  /** Additional gas reserved when a DeFi route privately deposits its output. */
+  defiRedepositGasByTier: Record<string, number>;
   maxGas: number;
   gasLimitMultiplierBps: number;
 };

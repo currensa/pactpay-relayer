@@ -158,6 +158,8 @@ function parseChain(
     gasByTier,
     refundGasByTier: scaledTierMap(row.refundGasByTier, gasByTier, `${label}.refundGasByTier`),
     defiGasByTier: scaledTierMap(row.defiGasByTier, gasByTier, `${label}.defiGasByTier`),
+    defiRedepositGasByTier: row.defiRedepositGasByTier === undefined
+      ? gasByTier : tierMap(row.defiRedepositGasByTier, `${label}.defiRedepositGasByTier`),
     maxGas: integer(row.maxGas, `${label}.maxGas`, 1),
     gasLimitMultiplierBps: integer(row.gasLimitMultiplierBps ?? 12_000, `${label}.gasLimitMultiplierBps`, 10_000),
     };

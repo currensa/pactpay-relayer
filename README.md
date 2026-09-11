@@ -47,10 +47,11 @@ Refund quotes use `refundGasByTier` on EVM or `refundEnergyByTier` and
 conservative 2× fallback from the corresponding withdrawal estimates. Measured
 production values should replace the fallback.
 
-DeFi quotes use `defiGasByTier` on EVM and `defiEnergyByTier` plus
-`defiBandwidthByTier` on TRON. DeFi calldata is bound to the configured router,
-protocol/helper allowlist, fee, token, amount, tier, nullifier, and nonce. TRON
-private re-deposit is rejected.
+Public-output DeFi quotes use `defiGasByTier` on EVM and `defiEnergyByTier` plus
+`defiBandwidthByTier` on TRON. An EVM private re-deposit additionally uses
+`defiRedepositGasByTier`, selected by its deposit circuit tier. The quote and
+calldata are bound to the same output mode and re-deposit tier. TRON private
+re-deposit is rejected.
 
 Run the service:
 
@@ -72,8 +73,9 @@ npm run start:prod
 - `POST /v1/refund` accepts `chainId`, `quoteId`, and unsigned refund `calldata`,
   returning a durable operation ID.
 - `POST /v1/defi/quote` accepts `chainId`, input token, gross base-unit
-  withdrawal `amount`, and circuit `tier`; it returns the largest swap amount
-  that fits after the network and service fees.
+  withdrawal `amount`, and withdrawal circuit `tier`. EVM private re-deposit
+  also requires `privateRedeposit: true` and `redepositTier`; the endpoint
+  returns the largest swap amount that fits after the network and service fees.
 - `POST /v1/defi` accepts `chainId`, `quoteId`, and proof-bound DeFi router
   `calldata`, returning a durable operation ID.
 - `GET /v1/operations/:id` returns queued, submitted, confirmed, or failed

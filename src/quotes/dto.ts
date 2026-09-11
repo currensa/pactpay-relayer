@@ -1,4 +1,4 @@
-import { IsIn, IsInt, IsString, Matches, Min } from "class-validator";
+import { IsBoolean, IsIn, IsInt, IsOptional, IsString, Matches, Min } from "class-validator";
 
 export class CreateQuoteDto {
   @IsInt()
@@ -19,4 +19,13 @@ export class CreateQuoteDto {
 
 export class CreateWithdrawQuoteDto extends CreateQuoteDto {}
 export class CreateRefundQuoteDto extends CreateQuoteDto {}
-export class CreateDefiQuoteDto extends CreateQuoteDto {}
+export class CreateDefiQuoteDto extends CreateQuoteDto {
+  @IsOptional()
+  @IsBoolean()
+  privateRedeposit?: boolean;
+
+  @IsOptional()
+  @IsInt()
+  @IsIn([8, 16, 32, 64, 128])
+  redepositTier?: number;
+}

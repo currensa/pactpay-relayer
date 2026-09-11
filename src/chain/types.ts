@@ -22,7 +22,7 @@ export interface ChainAdapter {
   readonly relayerCanonical: string;
   readonly relayerDisplay: string;
   checkConnection(): Promise<void>;
-  estimateNativeNetworkCosts(operation: RelayedOperation, tiers: CircuitTier[]): Promise<Map<CircuitTier, bigint>>;
+  estimateNativeNetworkCosts(operation: RelayedOperation, tiers: CircuitTier[], redepositTier?: CircuitTier): Promise<Map<CircuitTier, bigint>>;
   simulate(calldata: string, operation: RelayedOperation, tier: CircuitTier): Promise<SimulationResult>;
   simulatedNativeCost(simulation: SimulationResult): Promise<bigint>;
   sign(calldata: string, simulation: SimulationResult, operation: RelayedOperation): Promise<SignedTransaction>;

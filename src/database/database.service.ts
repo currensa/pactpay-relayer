@@ -10,6 +10,8 @@ function quote(row: Record<string, unknown>): QuoteRecord {
   return {
     id: String(row.id), operation: String(row.operation) as QuoteRecord["operation"], chainId: Number(row.chain_id), gravArc: String(row.grav_arc), relayer: String(row.relayer),
     token: String(row.token), amount: String(row.amount), tier: Number(row.tier), networkFee: String(row.network_fee),
+    privateRedeposit: Number(row.private_redeposit ?? 0) === 1,
+    redepositTier: row.redeposit_tier === null || row.redeposit_tier === undefined ? null : Number(row.redeposit_tier),
     serviceFee: String(row.service_fee), fee: String(row.fee), createdAt: Number(row.created_at), expiresAt: Number(row.expires_at),
     usedAt: row.used_at === null ? null : Number(row.used_at),
   };
@@ -56,6 +58,8 @@ export class DatabaseService implements OnModuleDestroy {
         token TEXT NOT NULL,
         amount TEXT NOT NULL,
         tier INTEGER NOT NULL,
+        private_redeposit INTEGER NOT NULL DEFAULT 0 CHECK(private_redeposit IN (0,1)),
+        redeposit_tier INTEGER,
         network_fee TEXT NOT NULL,
         service_fee TEXT NOT NULL,
         fee TEXT NOT NULL,
@@ -101,6 +105,9 @@ export class DatabaseService implements OnModuleDestroy {
       this.db.exec("UPDATE operations SET reservation_key = nullifier_hash || ':' || withdraw_nonce WHERE reservation_key = ''");
     }
     this.migrateDefiOperationKind();
+    const currentQuoteColumns = new Set((this.db.prepare("PRAGMA table_info(quotes)").all() as Array<{ name: string }>).map((entry) => entry.name));
+    if (!currentQuoteColumns.has("private_redeposit")) this.db.exec("ALTER TABLE quotes ADD COLUMN private_redeposit INTEGER NOT NULL DEFAULT 0");
+    if (!currentQuoteColumns.has("redeposit_tier")) this.db.exec("ALTER TABLE quotes ADD COLUMN redeposit_tier INTEGER");
     this.db.exec("CREATE UNIQUE INDEX IF NOT EXISTS operations_reservation_idx ON operations(chain_id, operation, reservation_key)");
   }
 
@@ -121,7 +128,8 @@ export class DatabaseService implements OnModuleDestroy {
           CREATE TABLE quotes (
             id TEXT PRIMARY KEY, operation TEXT NOT NULL DEFAULT 'withdraw' CHECK(operation IN ('withdraw','refund','defi')),
             chain_id INTEGER NOT NULL, grav_arc TEXT NOT NULL, relayer TEXT NOT NULL, token TEXT NOT NULL, amount TEXT NOT NULL,
-            tier INTEGER NOT NULL, network_fee TEXT NOT NULL, service_fee TEXT NOT NULL, fee TEXT NOT NULL,
+            tier INTEGER NOT NULL, private_redeposit INTEGER NOT NULL DEFAULT 0, redeposit_tier INTEGER,
+            network_fee TEXT NOT NULL, service_fee TEXT NOT NULL, fee TEXT NOT NULL,
             created_at INTEGER NOT NULL, expires_at INTEGER NOT NULL, used_at INTEGER
           );
           CREATE TABLE operations (
@@ -133,7 +141,10 @@ export class DatabaseService implements OnModuleDestroy {
             attempts INTEGER NOT NULL DEFAULT 0, next_attempt_at INTEGER NOT NULL, created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL,
             submitted_at INTEGER, confirmed_at INTEGER, UNIQUE(chain_id, nullifier_hash, withdraw_nonce)
           );
-          INSERT INTO quotes SELECT * FROM quotes_before_defi;
+          INSERT INTO quotes
+            (id, operation, chain_id, grav_arc, relayer, token, amount, tier, network_fee, service_fee, fee, created_at, expires_at, used_at)
+          SELECT id, operation, chain_id, grav_arc, relayer, token, amount, tier, network_fee, service_fee, fee, created_at, expires_at, used_at
+          FROM quotes_before_defi;
           INSERT INTO operations SELECT * FROM operations_before_defi;
           DROP TABLE operations_before_defi;
           DROP TABLE quotes_before_defi;
@@ -156,9 +167,11 @@ export class DatabaseService implements OnModuleDestroy {
 
   insertQuote(value: NewQuote): QuoteRecord {
     this.db.prepare(`INSERT INTO quotes
-      (id, operation, chain_id, grav_arc, relayer, token, amount, tier, network_fee, service_fee, fee, created_at, expires_at, used_at)
-      VALUES (@id, @operation, @chainId, @gravArc, @relayer, @token, @amount, @tier, @networkFee, @serviceFee, @fee, @createdAt, @expiresAt, NULL)`
-    ).run(value);
+      (id, operation, chain_id, grav_arc, relayer, token, amount, tier, private_redeposit, redeposit_tier,
+       network_fee, service_fee, fee, created_at, expires_at, used_at)
+      VALUES (@id, @operation, @chainId, @gravArc, @relayer, @token, @amount, @tier, @privateRedeposit, @redepositTier,
+       @networkFee, @serviceFee, @fee, @createdAt, @expiresAt, NULL)`
+    ).run({ ...value, privateRedeposit: value.privateRedeposit ? 1 : 0, redepositTier: value.redepositTier ?? null });
     return this.getQuote(value.id)!;
   }
 
