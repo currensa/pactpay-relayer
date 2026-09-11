@@ -3,6 +3,8 @@ import { canonicalAddress } from "../chain/address";
 import { DEFI_ROUTER_ABI } from "../chain/abi";
 import { RelayerError } from "../common/errors";
 import type { ChainConfig, CircuitTier } from "../config/types";
+import { validateProtocolCalls } from "./protocols";
+import type { DefiCall } from "./protocols/types";
 
 const iface = new Interface(DEFI_ROUTER_ABI);
 const coder = AbiCoder.defaultAbiCoder();
@@ -40,31 +42,43 @@ export function parseDefiCalldata(calldata: string, chain: ChainConfig, maxBytes
     const nonce = BigInt(String(withdrawal.nonce));
     if (withdrawFee !== expectedAmount || defiFee >= expectedAmount) throw new RelayerError("DEFI_AMOUNT_INVALID", "DeFi withdrawal amount or fee binding is invalid", 422);
     if (canonicalAddress(String(withdrawal.relayer), chain.family) !== chain.defiRouter) throw new RelayerError("RELAYER_MISMATCH", "Withdrawal proof is not bound to the configured DeFi router", 409);
-    const calls = Array.from(defi.defiCalls as ArrayLike<Record<string, unknown>>).map((call) => ({
+    const calls: DefiCall[] = Array.from(defi.defiCalls as ArrayLike<Record<string, unknown>>).map((call) => ({
       target: canonicalAddress(String(call.target), chain.family), value: BigInt(String(call.value)), data: String(call.data).toLowerCase(),
     }));
     if (calls.length === 0 || calls.length > 16) throw new RelayerError("DEFI_CALLS_INVALID", "DeFi call count is invalid", 422);
     const allowed = new Set([
       chain.gravArc, chain.pureRouter,
       ...chain.allowedTokens,
-      ...chain.defiProtocols.flatMap((protocol) => [protocol.address, ...protocol.helpContracts]),
+      ...chain.defiProtocols.flatMap((protocol) => [protocol.address, ...Object.values(protocol.helpContracts)]),
     ]);
     if (calls.some((call) => !allowed.has(call.target) || !/^0x[0-9a-f]*$/.test(call.data))) {
       throw new RelayerError("DEFI_TARGET_UNSUPPORTED", "DeFi calldata contains a target outside the configured allowlist", 422);
     }
-    if (!calls.some((call) => chain.defiProtocols.some((protocol) => protocol.address === call.target))) {
+    const selectedProtocols = chain.defiProtocols.filter((protocol) => calls.some((call) => call.target === protocol.address));
+    if (selectedProtocols.length === 0) {
       throw new RelayerError("DEFI_PROTOCOL_MISSING", "DeFi calldata does not call a configured protocol", 422);
+    }
+    if (selectedProtocols.length !== 1) {
+      throw new RelayerError("DEFI_PROTOCOL_AMBIGUOUS", "DeFi calldata must call exactly one configured protocol", 422);
     }
     if (chain.family === "tron" && calls.some((call) => call.target === chain.gravArc)) {
       throw new RelayerError("TRON_REDEPOSIT_UNSUPPORTED", "Private re-deposit is not supported on TRON", 422);
     }
+    const defiAmount = expectedAmount - defiFee;
+    validateProtocolCalls({
+      calls,
+      chain,
+      protocol: selectedProtocols[0]!,
+      inputToken: canonicalAddress(String(withdrawal.token), chain.family),
+      defiAmount,
+    });
     const callHashes = calls.map((call) => keccak256(coder.encode(["address", "uint256", "bytes"], [call.target, call.value, call.data])));
     const callsHash = keccak256(concat(callHashes.map((hash) => getBytes(hash))));
     const commitment = `0x${keccak256(coder.encode(["uint256", "bytes32"], [defiFee, callsHash])).slice(-40)}`;
     if (canonicalAddress(String(withdrawal.recipient), chain.family) !== commitment) throw new RelayerError("DEFI_COMMITMENT_MISMATCH", "DeFi call commitment is invalid", 409);
     return {
       nullifierHash, nonce, token: canonicalAddress(String(withdrawal.token), chain.family), tier: tier as CircuitTier,
-      expectedAmount, defiAmount: expectedAmount - defiFee, defiFee,
+      expectedAmount, defiAmount, defiFee,
       reservationKey: `${nullifierHash}:${nonce}`,
     };
   } catch (error) {

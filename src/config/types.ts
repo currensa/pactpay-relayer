@@ -2,7 +2,12 @@ export type ChainFamily = "evm" | "tron";
 export type CircuitTier = 8 | 16 | 32 | 64 | 128;
 export type RelayedOperation = "withdraw" | "refund" | "defi";
 
-export type DefiProtocolConfig = { name: string; type: string; address: string; helpContracts: string[] };
+export type DefiProtocolConfig = {
+  name: string;
+  type: string;
+  address: string;
+  helpContracts: Record<string, string>;
+};
 
 export type TokenConfig = {
   symbol: string;

@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { parseConfiguration } from "../src/config/configuration.service";
+import { validateProtocolConfig } from "../src/defi/protocols";
 
 const token = "0x2222222222222222222222222222222222222222";
 
@@ -51,5 +52,55 @@ test("rejects pricing for a token outside the public allowlist", () => {
   assert.throws(
     () => parseConfiguration(publicConfiguration(), relayerConfiguration("0x3333333333333333333333333333333333333333")),
     /not listed in the public chain configuration/,
+  );
+});
+
+test("preserves and validates named Uniswap V3 helper contracts", () => {
+  const publicValue = publicConfiguration() as Record<string, Record<string, unknown>>;
+  const router = "0x3333333333333333333333333333333333333333";
+  publicValue["12345"]!.defiProtocols = [{
+    name: "Uniswap V3",
+    type: "uniswap-v3",
+    address: router,
+    "help-contracts": {
+      factory: "0x5555555555555555555555555555555555555555",
+      quoterV2: "0x6666666666666666666666666666666666666666",
+      swapRouter02: router,
+      weth9: "0x7777777777777777777777777777777777777777",
+    },
+  }];
+  const chain = parseConfiguration(publicValue, relayerConfiguration()).chains[0]!;
+  assert.deepEqual(chain.defiProtocols[0]!.helpContracts, {
+    factory: "0x5555555555555555555555555555555555555555",
+    quoterV2: "0x6666666666666666666666666666666666666666",
+    swapRouter02: router,
+    weth9: "0x7777777777777777777777777777777777777777",
+  });
+
+  const invalid = structuredClone(publicValue);
+  const protocols = invalid["12345"]!.defiProtocols as Array<Record<string, unknown>>;
+  (protocols[0]!["help-contracts"] as Record<string, string>).swapRouter02 =
+    "0x8888888888888888888888888888888888888888";
+  assert.throws(() => parseConfiguration(invalid, relayerConfiguration()), /must match/);
+});
+
+test("validates the SunSwap V4 family and named helper contracts", () => {
+  const router = "0x3333333333333333333333333333333333333333";
+  const protocol = {
+    name: "SunSwap V4",
+    type: "sunswap-v4",
+    address: router,
+    helpContracts: {
+      universalRouter: router,
+      permit2: "0x5555555555555555555555555555555555555555",
+      poolManager: "0x6666666666666666666666666666666666666666",
+      quoter: "0x7777777777777777777777777777777777777777",
+    },
+  };
+  assert.doesNotThrow(() => validateProtocolConfig(protocol, "tron", "SunSwap"));
+  assert.throws(() => validateProtocolConfig(protocol, "evm", "SunSwap"), /TRON family/);
+  assert.throws(
+    () => validateProtocolConfig({ ...protocol, helpContracts: { ...protocol.helpContracts, universalRouter: token } }, "tron", "SunSwap"),
+    /must match/,
   );
 });

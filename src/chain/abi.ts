@@ -4,6 +4,10 @@ export const GRAVARC_WITHDRAW_ABI = [
   `function withdraw(${WITHDRAW_TUPLE} p)`,
 ] as const;
 
+export const GRAVARC_DEPOSIT_ABI = [
+  "function deposit(tuple(uint256[2] pA,uint256[2][2] pB,uint256[2] pC,uint256 newRoot,uint256 depositLeaf,uint256 totalAmount,address token,uint8 tier) p)",
+] as const;
+
 export const REFUND_TUPLE = "tuple(uint256[2] pA,uint256[2][2] pB,uint256[2] pC,uint256 depositRoot,bytes32[] nullifierHash,address token,uint256 refundAmount,uint256 fee,address relayer,address refunder,uint8 tier)";
 
 export const GRAVARC_REFUND_ABI = [

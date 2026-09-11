@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { config as loadDotEnv } from "dotenv";
 import { canonicalAddress, ZERO_ADDRESS } from "../chain/address";
+import { validateProtocolConfig } from "../defi/protocols";
 import type { ChainConfig, CircuitTier, RelayerConfig, TokenConfig } from "./types";
 
 const TIERS: CircuitTier[] = [8, 16, 32, 64, 128];
@@ -67,14 +68,23 @@ function publicDefiProtocols(publicChain: Record<string, unknown>, family: "evm"
   return values.map((value, index) => {
     const protocolLabel = `${label}.defiProtocols[${index}]`;
     const row = object(value, protocolLabel);
-    const helpers = row["help-contracts"] === undefined ? [] : Object.values(object(row["help-contracts"], `${protocolLabel}.help-contracts`))
-      .map((address, helperIndex) => canonicalAddress(string(address, `${protocolLabel}.help-contracts[${helperIndex}]`), family));
-    return {
+    const type = typeof row.type === "string" && row.type ? row.type : "mock-swap";
+    const address = canonicalAddress(string(row.address, `${protocolLabel}.address`), family);
+    const helperRows = row["help-contracts"] === undefined
+      ? {}
+      : object(row["help-contracts"], `${protocolLabel}.help-contracts`);
+    const helpContracts = Object.fromEntries(Object.entries(helperRows).map(([name, helper]) => [
+      name,
+      canonicalAddress(string(helper, `${protocolLabel}.help-contracts.${name}`), family),
+    ]));
+    const protocol = {
       name: string(row.name, `${protocolLabel}.name`),
-      type: typeof row.type === "string" && row.type ? row.type : "mock-swap",
-      address: canonicalAddress(string(row.address, `${protocolLabel}.address`), family),
-      helpContracts: helpers,
+      type,
+      address,
+      helpContracts,
     };
+    validateProtocolConfig(protocol, family, protocolLabel);
+    return protocol;
   });
 }
 

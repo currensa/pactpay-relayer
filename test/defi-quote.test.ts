@@ -9,7 +9,7 @@ import type { QuoteRecord } from "../src/database/types";
 
 test("DeFi total budgets reserve fees and maximize the routed amount", async () => {
   const chain = { ...evmChain(), defiRouter: zero, pureRouter: zero,
-    defiProtocols: [{ name: "Mock", type: "mock-swap", address: zero, helpContracts: [] }] };
+    defiProtocols: [{ name: "Mock", type: "mock-swap", address: zero, helpContracts: {} }] };
   const service = new QuoteService(configuration(":memory:", chain), {
     get: () => ({ relayerCanonical: zero, estimateNativeNetworkCosts: async () => new Map([[8, 100n]]) }),
   } as unknown as ChainService, {

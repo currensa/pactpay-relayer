@@ -45,7 +45,17 @@ export class StatusService {
           operations: {
             withdraw: { available: true, serviceFeeBps: this.configuration.value.serviceFeeBps, quoteTtlSeconds: this.configuration.value.quoteTtlSeconds },
             refund: { available: true, serviceFeeBps: this.configuration.value.serviceFeeBps, quoteTtlSeconds: this.configuration.value.quoteTtlSeconds },
-            defi: { available: !!chain.defiRouter && !!chain.pureRouter && chain.defiProtocols.length > 0, serviceFeeBps: this.configuration.value.serviceFeeBps, quoteTtlSeconds: this.configuration.value.quoteTtlSeconds },
+            defi: {
+              available: !!chain.defiRouter && !!chain.pureRouter && chain.defiProtocols.length > 0,
+              serviceFeeBps: this.configuration.value.serviceFeeBps,
+              quoteTtlSeconds: this.configuration.value.quoteTtlSeconds,
+              protocols: chain.defiProtocols.map((protocol) => ({
+                name: protocol.name,
+                type: protocol.type,
+                address: protocol.address,
+                addressDisplay: displayAddress(protocol.address, chain.family),
+              })),
+            },
           },
         };
       } catch (error) {

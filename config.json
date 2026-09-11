@@ -40,6 +40,11 @@
         "address": "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238"
       },
       {
+        "symbol": "WETH",
+        "name": "Wrapped Ether",
+        "address": "0xfff9976782d46cc05630d1f6ebab18b2324d6b14"
+      },
+      {
         "symbol": "MCK-2",
         "name": "Mock-2",
         "address": "0xCb264aA91Aa82E1C6E70F716dFB1306D78a4Aa90"
@@ -51,6 +56,18 @@
       {
         "name": "MockSwap",
         "address": "0x43d37f188F51f2A942eE49BBb638c46F33567fEe"
+      },
+      {
+        "name": "Uniswap V3",
+        "type": "uniswap-v3",
+        "outputBehavior": "variable",
+        "address": "0x3bFA4769FB09eefC5a80d6E87c3B9C650f7Ae48E",
+        "help-contracts": {
+          "factory": "0x0227628f3F023bb0B980b67D528571c95c6DaC1c",
+          "quoterV2": "0xEd1f6473345F45b75F8179591dd5bA1888cf2FB3",
+          "swapRouter02": "0x3bFA4769FB09eefC5a80d6E87c3B9C650f7Ae48E",
+          "weth9": "0xfff9976782d46cc05630d1f6ebab18b2324d6b14"
+        }
       }
     ],
     "MockSwap": "0x43d37f188F51f2A942eE49BBb638c46F33567fEe",
