@@ -74,3 +74,23 @@ test("rejects stale CoinGecko prices", async () => {
     globalThis.fetch = originalFetch;
   }
 });
+
+test("uses explicit test-only native/token pricing without a remote request", async () => {
+  const chain = evmChain();
+  const token = {
+    symbol: "MCK",
+    address: "0x2222222222222222222222222222222222222222",
+    decimals: 18,
+    testOnlyNativePerToken: "1",
+  };
+  chain.tokens.push(token);
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () => { throw new Error("must not fetch"); };
+  try {
+    const result = await new PricingService(configuration(":memory:", chain))
+      .networkCostInToken(chain, token, 1_000n);
+    assert.equal(result.amount, 1_050_000_000_000_000n);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});

@@ -54,6 +54,7 @@ export class StatusService {
                 type: protocol.type,
                 address: protocol.address,
                 addressDisplay: displayAddress(protocol.address, chain.family),
+                helpContracts: protocol.helpContracts,
               })),
             },
           },

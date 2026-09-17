@@ -104,3 +104,30 @@ test("validates the SunSwap V4 family and named helper contracts", () => {
     /must match/,
   );
 });
+
+test("validates Kuru's configured market and supports explicit test-only pricing", () => {
+  const publicValue = publicConfiguration() as Record<string, Record<string, unknown>>;
+  const router = "0x3333333333333333333333333333333333333333";
+  publicValue["12345"]!.defiProtocols = [{
+    name: "Kuru",
+    type: "kuru",
+    address: router,
+    "help-contracts": {
+      market: "0x5555555555555555555555555555555555555555",
+      vault: "0x6666666666666666666666666666666666666666",
+      marginAccount: "0x7777777777777777777777777777777777777777",
+      baseToken: token,
+      quoteToken: "0x8888888888888888888888888888888888888888",
+    },
+  }];
+  const privateValue = relayerConfiguration();
+  delete (privateValue.chains[0] as Record<string, unknown>).nativePriceAssetId;
+  privateValue.chains[0]!.tokenPricing = [{ address: token, decimals: 6, testOnlyNativePerToken: "1" } as never];
+  const chain = parseConfiguration(publicValue, privateValue).chains[0]!;
+  assert.equal(chain.tokens[1]!.testOnlyNativePerToken, "1");
+  assert.doesNotThrow(() => validateProtocolConfig(chain.defiProtocols[0]!, "evm", "Kuru"));
+  assert.throws(
+    () => validateProtocolConfig({ ...chain.defiProtocols[0]!, helpContracts: { ...chain.defiProtocols[0]!.helpContracts, quoteToken: token } }, "evm", "Kuru"),
+    /must differ/,
+  );
+});

@@ -96,6 +96,9 @@ export class PricingService {
 
   async conversion(chain: ChainConfig, token: TokenConfig, now = Date.now()): Promise<TokenConversion> {
     if (token.address === ZERO_ADDRESS) return { nativePerToken: "1", updatedAt: now };
+    if (token.testOnlyNativePerToken) {
+      return { nativePerToken: token.testOnlyNativePerToken, updatedAt: now };
+    }
     if (!chain.nativePriceAssetId || !token.priceAssetId) throw new RelayerError("PRICE_UNAVAILABLE", `Pricing is not configured for ${token.symbol}`, 503);
     const prices = await this.fetchPrices([chain.nativePriceAssetId, token.priceAssetId]);
     const native = prices.get(chain.nativePriceAssetId)!;

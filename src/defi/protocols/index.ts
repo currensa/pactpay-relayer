@@ -1,4 +1,5 @@
 import type { DefiProtocolConfig } from "../../config/types";
+import { validateKuruCalls, validateKuruConfig } from "./kuru";
 import { validateSunSwapV4Calls, validateSunSwapV4Config } from "./sunswap-v4";
 import type { ProtocolCallValidation } from "./types";
 import { validateUniswapV3Calls, validateUniswapV3Config } from "./uniswap-v3";
@@ -9,6 +10,7 @@ type ProtocolDefinition = { validateCalls?: Validator; validateConfig?: ConfigVa
 
 const protocols: Record<string, ProtocolDefinition> = {
   "mock-swap": {},
+  kuru: { validateCalls: validateKuruCalls, validateConfig: validateKuruConfig },
   "sunswap-v4": { validateCalls: validateSunSwapV4Calls, validateConfig: validateSunSwapV4Config },
   "uniswap-v3": {
     validateConfig: validateUniswapV3Config,

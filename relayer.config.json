@@ -58,6 +58,29 @@
       ]
     },
     {
+      "chainId": 10143,
+      "privateKeyEnv": "RELAYER_PRIVATE_KEY_EVM",
+      "confirmations": 2,
+      "gasByTier": { "8": 400000, "16": 450000, "32": 500000, "64": 600000, "128": 750000 },
+      "refundGasByTier": { "8": 800000, "16": 900000, "32": 1000000, "64": 1200000, "128": 1500000 },
+      "defiGasByTier": { "8": 850000, "16": 850000, "32": 850000, "64": 850000, "128": 850000 },
+      "defiRedepositGasByTier": { "8": 400000, "16": 450000, "32": 500000, "64": 600000, "128": 750000 },
+      "maxGas": 3000000,
+      "gasLimitMultiplierBps": 12000,
+      "tokenPricing": [
+        {
+          "address": "0x44e9820A45886275b48ebB4c091d032d57e6A402",
+          "decimals": 18,
+          "testOnlyNativePerToken": "1"
+        },
+        {
+          "address": "0xbC18Ffe052aaa538F028c90661f7b38a68A77257",
+          "decimals": 18,
+          "testOnlyNativePerToken": "1"
+        }
+      ]
+    },
+    {
       "chainId": 3448148188,
       "privateKeyEnv": "RELAYER_PRIVATE_KEY_TRON",
       "confirmations": 19,

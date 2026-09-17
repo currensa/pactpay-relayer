@@ -138,6 +138,81 @@
     "RefundVerifier_64": "0xBe2E7EacD8a8294f2d94c6fce44bDAC6d950cF12",
     "RefundVerifier_128": "0x7F766A9B84551502b1471254704d19349749760a"
   },
+  "10143": {
+    "chainName": "Monad Testnet",
+    "family": "evm",
+    "confirmations": 2,
+    "rpcUrl": "https://testnet-rpc.monad.xyz",
+    "wallet": {
+      "nativeCurrency": {
+        "name": "Monad",
+        "symbol": "MON",
+        "decimals": 18
+      },
+      "rpcUrls": [
+        "https://testnet-rpc.monad.xyz"
+      ],
+      "blockExplorerUrls": [
+        "https://testnet.monadscan.com"
+      ]
+    },
+    "erc20Tokens": [
+      {
+        "symbol": "USDC",
+        "name": "USDC",
+        "address": "0x534b2f3A21130d7a60830c2Df862319e593943A3"
+      },
+      {
+        "symbol": "WMON",
+        "name": "Wrapped MON",
+        "address": "0xFb8bf4c1CC7a94c73D209a149eA2AbEa852BC541"
+      },
+      {
+        "symbol": "MCK-2",
+        "name": "Mock-2",
+        "address": "0xbC18Ffe052aaa538F028c90661f7b38a68A77257"
+      },
+      {
+        "symbol": "MCK",
+        "name": "MockERC20",
+        "address": "0x44e9820A45886275b48ebB4c091d032d57e6A402"
+      }
+    ],
+    "defiProtocols": [
+      {
+        "name": "Kuru",
+        "type": "kuru",
+        "outputBehavior": "variable",
+        "address": "0x7efbe105ca7415de98f96622173458ac1c054630",
+        "help-contracts": {
+          "market": "0xDC8d4197aceB1CA86446D6e77889F1B3397ADFA9",
+          "vault": "0x89435E121086474F3A2F4ba479509390Cd98f545",
+          "marginAccount": "0xd029c2d98ff85d8f64799017fe00a59b1159ce02",
+          "baseToken": "0x44e9820A45886275b48ebB4c091d032d57e6A402",
+          "quoteToken": "0xbC18Ffe052aaa538F028c90661f7b38a68A77257"
+        }
+      }
+    ],
+    "DepositVerifier_8": "0x46FAD580F332729c92fa830Cda55c0F6c08cDC16",
+    "DepositVerifier_16": "0x38ED393f5d01356bD8c7EAc462850F37d38c414E",
+    "DepositVerifier_32": "0x52736Cf6225828497BA9d5e75190376b35Ad420E",
+    "DepositVerifier_64": "0x82dd49DD180b3Eb6C56aE52dceA10A14C379C634",
+    "DepositVerifier_128": "0xfC8285c881FcE648C9a95272CafA1153353DE451",
+    "WithdrawVerifier_8": "0xAc986a0272F13b9bE83e27CBf2918673B8BB774E",
+    "WithdrawVerifier_16": "0x9909B11F743e604E9eD8edf8a93197E3fA84B530",
+    "WithdrawVerifier_32": "0xf352F4163F1244abe0cA61fB3b0321E4c3f50693",
+    "WithdrawVerifier_64": "0xfD08DA52f25bdcbaB7C0DBe0669150B113B3Ee37",
+    "WithdrawVerifier_128": "0x23a6c7DF5dbf5Ca3995c7d723c1A79B3c76B9755",
+    "RefundVerifier_8": "0x2b96792D4A35E1f8d23c128115fDc298f1718210",
+    "RefundVerifier_16": "0xF4a61fbED4f650B326f27EA407250963A7963ddf",
+    "RefundVerifier_32": "0x6ba9cC12f1addA695F541D7359A3EfD7ffa95Cd6",
+    "RefundVerifier_64": "0xB7469D525bc5F48bDb6A0fB5486006f28089E507",
+    "RefundVerifier_128": "0x804Cc20Be045B54842bdA59aE0ea37150a51eB38",
+    "GravArc": "0x90B2845DEc7aBBe7B07fc3c347c1C43DD158106A",
+    "StartBlock": 62747985,
+    "PureRouter": "0x73F654ebce58f20491c108f24A44fb05399A7FB3",
+    "PactPrivacyDefiRouter": "0x82eBb98b72F64603b90e9fD051F0366682212CA0"
+  },
   "3448148188": {
     "chainName": "TRON Nile Testnet",
     "family": "tron",

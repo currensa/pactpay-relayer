@@ -263,3 +263,89 @@ test("rejects tampered or expired nested Uniswap V3 calldata", () => {
     /six calls/,
   );
 });
+
+const kuruRouter = "0x1212121212121212121212121212121212121212";
+const kuruMarket = "0x1313131313131313131313131313131313131313";
+const kuruVault = "0x1414141414141414141414141414141414141414";
+const kuruMargin = "0x1515151515151515151515151515151515151515";
+const kuru = new Interface([
+  "function anyToAnySwap(address[] marketAddresses,bool[] isBuy,bool[] nativeSend,address debitToken,address creditToken,uint256 amount,uint256 minAmountOut) payable returns (uint256 amountOut)",
+]);
+
+function kuruChain() {
+  return {
+    ...evmChain(), chainId: 10143, defiRouter, pureRouter,
+    allowedTokens: [inputToken, outputToken],
+    defiProtocols: [{
+      name: "Kuru", type: "kuru", address: kuruRouter,
+      helpContracts: {
+        market: kuruMarket, vault: kuruVault, marginAccount: kuruMargin,
+        baseToken: inputToken, quoteToken: outputToken,
+      },
+    }],
+  };
+}
+
+function kuruCalls(options: {
+  isBuy?: boolean;
+  market?: string;
+  nativeSend?: boolean;
+  amount?: bigint;
+  minimumOutput?: bigint;
+  privateRedeposit?: boolean;
+  depositAmount?: bigint;
+} = {}) {
+  const isBuy = options.isBuy ?? false;
+  const tokenIn = isBuy ? outputToken : inputToken;
+  const tokenOut = isBuy ? inputToken : outputToken;
+  const amount = options.amount ?? 100n;
+  const minimumOutput = options.minimumOutput ?? 90n;
+  const calls = [
+    { target: tokenIn, value: 0n, data: erc20.encodeFunctionData("approve", [kuruRouter, amount]) },
+    { target: kuruRouter, value: 0n, data: kuru.encodeFunctionData("anyToAnySwap", [
+      [options.market ?? kuruMarket], [isBuy], [options.nativeSend ?? false],
+      tokenIn, tokenOut, amount, minimumOutput,
+    ]) },
+    { target: tokenIn, value: 0n, data: erc20.encodeFunctionData("approve", [kuruRouter, 0n]) },
+  ];
+  if (options.privateRedeposit) {
+    const depositAmount = options.depositAmount ?? 80n;
+    calls.push(
+      { target: tokenOut, value: 0n, data: erc20.encodeFunctionData("approve", [evmChain().gravArc, depositAmount]) },
+      { target: evmChain().gravArc, value: 0n, data: gravArcDeposit.encodeFunctionData("deposit", [[
+        [1n, 2n], [[3n, 4n], [5n, 6n]], [7n, 8n], 9n, 10n, depositAmount, tokenOut, 8n,
+      ]]) },
+      { target: pureRouter, value: 0n, data: sweeper.encodeFunctionData("sweepRemaining", [tokenOut, excessRecipient]) },
+    );
+  } else {
+    calls.push({ target: pureRouter, value: 0n, data: sweeper.encodeFunctionData("sweepRemaining", [tokenOut, publicRecipient]) });
+  }
+  return { calls, tokenIn };
+}
+
+test("validates strict Kuru sell, buy, public-output, and private re-deposit routes", () => {
+  const sell = kuruCalls();
+  const publicResult = parseDefiCalldata(calldata(sell.calls, sell.tokenIn), kuruChain(), 65_536);
+  assert.equal(publicResult.defiAmount, 100n);
+  assert.equal(publicResult.privateRedeposit, false);
+
+  const buy = kuruCalls({ isBuy: true, privateRedeposit: true });
+  const privateResult = parseDefiCalldata(calldata(buy.calls, buy.tokenIn), kuruChain(), 65_536);
+  assert.equal(privateResult.privateRedeposit, true);
+  assert.equal(privateResult.redepositTier, 8);
+});
+
+test("rejects tampered Kuru market, native mode, direction, amount, and unsafe re-deposit", () => {
+  for (const fixture of [
+    kuruCalls({ market: factory }),
+    kuruCalls({ nativeSend: true }),
+    kuruCalls({ amount: 99n }),
+  ]) {
+    assert.throws(() => parseDefiCalldata(calldata(fixture.calls, fixture.tokenIn), kuruChain(), 65_536), /Kuru/);
+  }
+  const unsafe = kuruCalls({ privateRedeposit: true, depositAmount: 91n });
+  assert.throws(
+    () => parseDefiCalldata(calldata(unsafe.calls, unsafe.tokenIn), kuruChain(), 65_536),
+    /not guaranteed/,
+  );
+});

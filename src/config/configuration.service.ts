@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { config as loadDotEnv } from "dotenv";
 import { canonicalAddress, ZERO_ADDRESS } from "../chain/address";
+import { decimalFraction } from "../chain/price";
 import { validateProtocolConfig } from "../defi/protocols";
 import type { ChainConfig, CircuitTier, RelayerConfig, TokenConfig } from "./types";
 
@@ -98,11 +99,19 @@ function parsePricedToken(
   const address = canonicalAddress(string(row.address, `${label}.address`), family);
   const token = allowed.get(address);
   if (!token) throw new Error(`${label}.address is not listed in the public chain configuration`);
+  const priceAssetId = row.priceAssetId === undefined ? undefined : string(row.priceAssetId, `${label}.priceAssetId`);
+  const testOnlyNativePerToken = row.testOnlyNativePerToken === undefined
+    ? undefined : string(row.testOnlyNativePerToken, `${label}.testOnlyNativePerToken`);
+  if ((priceAssetId === undefined) === (testOnlyNativePerToken === undefined)) {
+    throw new Error(`${label} must provide exactly one of priceAssetId or testOnlyNativePerToken`);
+  }
+  if (testOnlyNativePerToken !== undefined) decimalFraction(testOnlyNativePerToken);
   return {
     symbol: token.symbol,
     address,
     decimals: integer(row.decimals, `${label}.decimals`, 0),
-    priceAssetId: string(row.priceAssetId, `${label}.priceAssetId`),
+    ...(priceAssetId ? { priceAssetId } : {}),
+    ...(testOnlyNativePerToken ? { testOnlyNativePerToken } : {}),
   };
 }
 
@@ -127,7 +136,8 @@ function parseChain(
   if (!Array.isArray(pricing)) throw new Error(`${label}.tokenPricing must be an array`);
   const pricedTokens = pricing.map((token, tokenIndex) => parsePricedToken(token, family, allowedTokens, `${label}.tokenPricing[${tokenIndex}]`));
   if (new Set(pricedTokens.map((token) => token.address)).size !== pricedTokens.length) throw new Error(`${label}.tokenPricing contains duplicate token addresses`);
-  const nativePriceAssetId = pricedTokens.length === 0 ? undefined : string(row.nativePriceAssetId, `${label}.nativePriceAssetId`);
+  const needsMarketPricing = pricedTokens.some((token) => token.priceAssetId !== undefined);
+  const nativePriceAssetId = needsMarketPricing ? string(row.nativePriceAssetId, `${label}.nativePriceAssetId`) : undefined;
 
   const base = {
     chainId,

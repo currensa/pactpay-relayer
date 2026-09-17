@@ -15,6 +15,8 @@ export type TokenConfig = {
   decimals: number;
   /** CoinGecko asset ID. Native tokens omit this because no conversion is needed. */
   priceAssetId?: string;
+  /** Explicit test-network assumption: units of native currency per token. */
+  testOnlyNativePerToken?: string;
 };
 
 export type BaseChainConfig = {
