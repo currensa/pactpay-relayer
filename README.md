@@ -37,6 +37,11 @@ USD prices from CoinGecko's keyless public API, derives the token/native ratio,
 caches it briefly, and rejects unavailable or stale prices. `priceSafetyMarginBps`
 adds a conversion-risk margin to non-native network fees.
 
+Test networks may instead use `testOnlyNativePerToken` for an explicit static
+mock-token/native-token ratio. Exactly one pricing source is allowed per token.
+Monad Testnet currently uses this only for MCK and MCK-2; never copy those
+assumptions to mainnet or real assets.
+
 Configured gas, energy, and bandwidth estimates are multiplied by the safety
 multiplier before quoting. Immediately before signing, the relayer compares the
 locked network-fee component with the actual simulated limit and rejects an
@@ -52,6 +57,11 @@ Public-output DeFi quotes use `defiGasByTier` on EVM and `defiEnergyByTier` plus
 `defiRedepositGasByTier`, selected by its deposit circuit tier. The quote and
 calldata are bound to the same output mode and re-deposit tier. TRON private
 re-deposit is rejected.
+
+Configured DeFi adapters currently include Uniswap V3 on Ethereum Sepolia,
+SunSwap V4 on TRON Nile, and Kuru on Monad Testnet. Kuru is restricted to the
+configured MCK/MCK-2 one-hop ERC-20 market and supports public output or EVM
+private re-deposit; native MON, multihop, and Kuru Flow are rejected.
 
 Run the service:
 
